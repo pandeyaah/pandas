@@ -291,6 +291,11 @@ def add_nans(panel):
         for j, col in enumerate(dm.columns):
             dm[col][:i + j] = np.NaN
 
+def add_nans_fdp(fdp):
+    for l, label in enumerate(fdp.labels):
+        panel = fdp[label]
+        add_nans(panel)
+
 class TestSubDict(dict):
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
