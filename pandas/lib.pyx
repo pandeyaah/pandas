@@ -1280,3 +1280,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
 include "reduce.pyx"
 include "properties.pyx"
 include "inference.pyx"
+include "strings.pyx"

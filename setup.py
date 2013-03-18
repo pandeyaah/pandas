@@ -561,7 +561,7 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = ['reduce', 'inference', 'properties']
+lib_depends = ['reduce', 'inference', 'properties', 'strings']
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):

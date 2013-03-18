@@ -6,7 +6,6 @@ from pandas.core.series import Series
 import re
 import pandas.lib as lib
 
-
 def _get_array_list(arr, others):
     if isinstance(others[0], (list, np.ndarray)):
         arrays = [arr] + list(others)
@@ -203,9 +202,26 @@ def str_endswith(arr, pat, na=np.nan):
     -------
     endswith : array (boolean)
     """
-    f = lambda x: x.endswith(pat)
-    return _na_map(f, arr, na)
-
+    if not isinstance(arr, np.ndarray):
+        arr = np.asarray(arr, dtype=object)
+    if True:
+        mask = isnull(arr)
+        try:
+            result = lib.string_na_map_bool(arr.values, 'endswith', [ pat ], mask.view(np.uint8))
+        except (TypeError, AttributeError):
+            def g(x):
+                try:
+                    return f(x)
+                except (TypeError, AttributeError):
+                    return na_value
+            return _map(g, arr)
+        #if na_value is not np.nan:
+        #    np.putmask(result, mask, na_value)
+        #    if result.dtype == object:
+        #        result = lib.maybe_convert_objects(result)
+        return result
+    else:
+        return lib.map_infer(arr, f)
 
 def str_lower(arr):
     """
