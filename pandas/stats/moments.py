@@ -148,12 +148,17 @@ def rolling_count(arg, window, freq=None, center=False, time_rule=None):
     return_hook, values = _process_data_structure(arg, kill_inf=False)
 
     converted = np.isfinite(values).astype(float)
-    result = rolling_sum(converted, window, min_periods=1,
-                         center=center)  # already converted
+    if center:
+        center = ('na','na')
+        converted = _center_window(converted, window, 0, center=center)
+        result = rolling_sum(converted, window, min_periods=1,
+                             center=False)
+    else:
 
-    # putmask here?
+        result = rolling_sum(converted, window, min_periods=1,
+                             center=center)
+
     result[np.isnan(result)] = 0
-
     return return_hook(result)
 
 
@@ -277,50 +282,58 @@ def _rolling_moment(arg, window, func, minp, axis=0, freq=None,
     y : type of input
     """
     arg = _conv_timerule(arg, freq, time_rule)
-    calc = lambda x: func(x, window, minp=minp, **kwargs)
     return_hook, values = _process_data_structure(arg)
-    # actually calculate the moment. Faster way to do this?
-    if values.ndim > 1:
-        result = np.apply_along_axis(calc, axis, values)
-    else:
-        result = calc(values)
 
+    # actually calculate the moment. Faster way to do this?
+    def calc(x):
+        _calc = lambda x: func(x, window, minp=minp, **kwargs)
+        if x.ndim > 1:
+            return np.apply_along_axis(_calc, axis, x)
+        else:
+            return _calc(x)
+
+    result = calc(values)
     rs = return_hook(result)
     if center:
-        rs = _center_window(rs, window, axis)
+        rs = _center_window(rs, window, axis, center=center)
         # GH2953, fixup edges
         if window > 2:
-            if values.ndim > 1:
-                # TODO: handle mi vectorized case
-                pass
+
+            # there's an ambiguity on what constitutes
+            # the "center" when window is even
+            # we Just close ranks with numpy , see test case
+            # delta = 1 if  window % 2 == 0 else  0
+            if window % 2 == 0 :
+                nahead = (window-1)//2 or 1
             else:
-                # there's an ambiguity on what constitutes
-                # the "center" when window is even
-                # we Just close ranks with numpy , see test case
-                # delta = 1 if  window % 2 == 0 else  0
-                if window % 2 == 0 :
-                    nahead = (window-1)//2 or 1
-                else:
-                    nahead = (window)//2
+                nahead = (window)//2
 
-                # fixup the head
-                tip =  np.append(np.zeros(nahead+1),values[:(2*nahead+1)])
-                rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
+            # fixup the head
+            shape = list(values.shape)
+            shape[0] = nahead+1
+            tip =  np.append(np.zeros(tuple(shape)),values[:(2*nahead+1)],axis=0)
+            rs[:nahead+1] =  calc(tip)[-(nahead+1):][:nahead+1]
+            if minp > 0:
+                d = max(minp,nahead+1)
+                if d > 0:
+                    rs[:d] = NaN
 
-                # fixup the tail
-                tip =  np.append(values[-(2*nahead+1):],np.zeros(nahead))
-                rs[-(nahead):] =  calc(tip)[-(nahead):]
 
-                if minp > 0:
-                    d = minp - nahead-1
-                    if d > 0:
-                        rs[:d] = NaN
-                        rs[-(d):] = NaN
+            # fixup the tail
+            shape = list(values.shape)
+            shape[0] = nahead
+            tip =  np.append(values[-(2*nahead+1):],np.zeros(tuple(shape)),axis=0)
+            rs[-(nahead):] =  calc(tip)[-(nahead):]
+                    
+            if minp > 0:
+                d = max(nahead,minp)
+                if d > 0:
+                    rs[-d:] = NaN
 
     return rs
 
 
-def _center_window(rs, window, axis):
+def _center_window(rs, window, axis, center=None):
     offset = int((window - 1) / 2.)
     if isinstance(rs, (Series, DataFrame, Panel)):
         rs = rs.shift(-offset, axis=axis)
@@ -335,7 +348,23 @@ def _center_window(rs, window, axis):
         na_indexer[axis] = slice(-offset, None)
 
         rs[tuple(rs_indexer)] = np.copy(rs[tuple(lead_indexer)])
+
+        # center can optionally point to an action on
+        # lhs or rhs
+
+        if not isinstance(center, tuple):
+            center = ('copy','na')
+        lhs, rhs = center
+
+        #  lhs : default is copy
+        if lhs == 'na':
+            lhs_indexer = [slice(None)] * rs.ndim
+            lhs_indexer[axis] = slice(0, offset+1)
+            rs[tuple(lhs_indexer)] = np.nan
+
+        # rhs : default is na
         rs[tuple(na_indexer)] = np.nan
+
     return rs
 
 

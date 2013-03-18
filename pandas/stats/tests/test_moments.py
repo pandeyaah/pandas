@@ -442,7 +442,9 @@ class TestMoments(unittest.TestCase):
             if has_min_periods:
                 minp = 10
                 series_xp = func(self.series, 25, min_periods=minp).shift(-12)
+                series_xp[:13] = np.nan
                 frame_xp = func(self.frame, 25, min_periods=minp).shift(-12)
+                frame_xp[:13] = np.nan
 
                 series_rs = func(self.series, 25, min_periods=minp,
                                  center=True)
