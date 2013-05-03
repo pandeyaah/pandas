@@ -17,10 +17,8 @@ import pandas.core.expressions as expressions
 from pandas.tslib import Timestamp
 from pandas.util import py3compat
 
-
 def _re_compilable(ex):
     return isinstance(ex, (basestring, re._pattern_type))
-
 
 class Block(object):
     """
