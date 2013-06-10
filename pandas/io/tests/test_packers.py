@@ -53,10 +53,10 @@ class Test(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def encode_decode(self, x):
+    def encode_decode(self, x, **kwargs):
         with ensure_clean(self.path) as p:
-            to_msgpack(p,x)
-            return read_msgpack(p)
+            to_msgpack(p,x,**kwargs)
+            return read_msgpack(p,**kwargs)
 
 class TestNumpy(Test):
 
@@ -158,7 +158,7 @@ class TestBasic(Test):
     def test_datetimes(self):
 
         for i in [ datetime.datetime(2013,1,1), datetime.datetime(2013,1,1,5,1),
-                   datetime.date(2013,1,1), np.datetime64('2013-01-05 2:15') ]:
+                   datetime.date(2013,1,1), np.datetime64(datetime.datetime(2013,1,5,2,15)) ]:
             i_rec = self.encode_decode(i)
             self.assert_(i == i_rec)
 
@@ -208,6 +208,10 @@ class TestIndex(Test):
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
         i_rec = self.encode_decode(i)
+        self.assert_(i.equals(i_rec))
+
+        # alt encoding
+        i_rec = self.encode_decode(i,encoding='latin-1')
         self.assert_(i.equals(i_rec))
 
 class TestSeries(Test):

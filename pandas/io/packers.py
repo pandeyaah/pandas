@@ -108,10 +108,10 @@ def to_msgpack(path, *args, **kwargs):
         f = open(path, 'wb')
     try:
         if len(args) == 1:
-            f.write(pack(args[0]))
+            f.write(pack(args[0],**kwargs))
         else:
             for a in args:
-                f.write(pack(a))
+                f.write(pack(a,**kwargs))
     finally:
         f.close()
 
@@ -312,7 +312,7 @@ def encode(obj):
                                    'compress' : compressor
                                    } for b in data.blocks ] }
 
-    elif isinstance(obj, (datetime,date,timedelta)):
+    elif isinstance(obj, (datetime,date,np.datetime64,timedelta,np.timedelta64)):
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -324,9 +324,15 @@ def encode(obj):
                     'value': obj.value,
                     'offset' : offset,
                     'tz' : tz}
+        elif isinstance(obj, np.timedelta64):
+            return { 'typ' : 'timedelta64',
+                     'data' : obj.view('i8') }
         elif isinstance(obj, timedelta):
             return { 'typ' : 'timedelta',
                      'data' : (obj.days,obj.seconds,obj.microseconds) }
+        elif isinstance(obj, np.datetime64):
+            return { 'typ' : 'datetime64',
+                     'data' : str(obj) }
         elif isinstance(obj, datetime):
             return { 'typ' : 'datetime',
                      'data' : obj.isoformat() }
@@ -356,9 +362,6 @@ def encode(obj):
                 'dtype': obj.dtype.num,
                 'data': convert(obj),
                 'compress' : compressor }
-    elif isinstance(obj, np.timedelta64):
-        return { 'typ' : 'np_timedelta64',
-                 'data' : obj.view('i8') }
     elif isinstance(obj, np.number):
         if np.iscomplexobj(obj):
             return {'typ' : 'np_scalar',
@@ -414,10 +417,14 @@ def decode(obj):
         return globals()[obj['klass']](BlockManager(blocks, axes))
     elif typ == 'datetime':
         return parse(obj['data'])
+    elif typ == 'datetime64':
+        return np.datetime64(parse(obj['data']))
     elif typ == 'date':
         return parse(obj['data']).date()
     elif typ == 'timedelta':
         return timedelta(*obj['data'])
+    elif typ == 'timedelta64':
+        return np.timedelta64(int(obj['data']))
     elif typ == 'sparse_series':
         dtype = dtype_for(obj['dtype'])
         return globals()[obj['klass']](unconvert(obj['sp_values'],dtype,obj['compress']),sparse_index=obj['sp_index'],
@@ -434,8 +441,6 @@ def decode(obj):
         return globals()[obj['klass']](obj['length'],obj['indices'])
     elif typ == 'ndarray':
         return unconvert(obj['data'],np.typeDict[obj['dtype']],obj['compress']).reshape(obj['shape'])
-    elif typ == 'np_timedelta64':
-        return np.timedelta64(obj['data'])
     elif typ == 'np_scalar':
         if obj.get('sub_typ') == 'np_complex':
             return c2f(obj['real'], obj['imag'], obj['dtype'])
@@ -453,7 +458,7 @@ def decode(obj):
         return obj
 
 def pack(o, default=encode, 
-         encoding=None, unicode_errors='strict', use_single_float=False):
+         encoding='utf-8', unicode_errors='strict', use_single_float=False):
     """
     Pack an object and return the packed bytes.
     """
@@ -463,7 +468,7 @@ def pack(o, default=encode,
            use_single_float=use_single_float).pack(o)
 
 def unpack(packed, object_hook=decode, 
-           list_hook=None, use_list=False, encoding=None,
+           list_hook=None, use_list=False, encoding='utf-8',
            unicode_errors='strict', object_pairs_hook=None):
     """
     Unpack a packed object, return an iterator
@@ -480,7 +485,7 @@ if _USE_MSGPACK:
 
     class Packer(_packer.Packer):
         def __init__(self, default=encode, 
-                     encoding=None,
+                     encoding='utf-8',
                      unicode_errors='strict',
                      use_single_float=False):
             super(Packer, self).__init__(default=default, 
@@ -491,7 +496,7 @@ if _USE_MSGPACK:
     class Unpacker(_unpacker.Unpacker):
         def __init__(self, file_like=None, read_size=0, use_list=False,
                      object_hook=decode,
-                     object_pairs_hook=None, list_hook=None, encoding=None,
+                     object_pairs_hook=None, list_hook=None, encoding='utf-8',
                      unicode_errors='strict', max_buffer_size=0):
             super(Unpacker, self).__init__(file_like=file_like, 
                                            read_size=read_size,    
