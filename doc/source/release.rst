@@ -59,6 +59,9 @@ pandas 0.13
   - A Series of dtype ``timedelta64[ns]`` can now be divided by another
     ``timedelta64[ns]`` object to yield a ``float64`` dtyped Series. This
     is frequency conversion.
+  - read_excel (:issue:`4332`) supports a date_parser. This enables reading in hours
+    in a form of 01:00-24:00 in both `Excel datemodes <http://support.microsoft.com/kb/214330/en-us>`_
+    courtesy of @timmie
 
 **API Changes**
 

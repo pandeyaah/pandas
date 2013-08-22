@@ -1,7 +1,7 @@
 # pylint: disable=E1101
 
 from pandas.compat import StringIO, BytesIO, PY3, u, range, map
-#from datetime import datetime
+import datetime
 from os.path import split as psplit
 import csv
 import os
@@ -14,7 +14,7 @@ import nose
 from numpy import nan
 import numpy as np
 
-from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex, datetime
+from pandas import DataFrame, Series, Index, MultiIndex, DatetimeIndex
 import pandas.io.parsers as parsers
 from pandas.io.parsers import (read_csv, read_table, read_fwf,
                                 TextParser, TextFileReader)
@@ -31,6 +31,7 @@ from pandas import compat
 from pandas.lib import Timestamp
 from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
+from pandas.io.date_converters import offset_datetime
 
 from numpy.testing.decorators import slow
 
@@ -74,70 +75,6 @@ def _skip_if_no_mpl():
         raise nose.SkipTest('matplotlib not installed, skipping')
 
 
-def _offset_time(value, offset=-10):
-    '''appply corrective time offset in minutes
-
-    input
-    -----
-    value : datetime.time
-    offset : integer value in minutes
-    '''
-    # if a excel time like '23.07.2013 24:00' they actually mean
-    # in Python '23.07.2013 23:59', must be converted
-#            offset = -10 # minutes
-    _skip_if_no_mpl()
-    from pandas.io.date_converters import offset_datetime
-    ti_corr = offset_datetime(value, minutes=offset)
-    # combine the corrected time component with the datetime
-#            dt_comb = dt.datetime.combine(dt_now, ti_corr)
-
-    #since input is time, we return it.
-    #TODO:
-    #it is actually very strange that Pandas does consider an index
-    #of datetime.time as index of objects and not time
-
-    return ti_corr
-
-
-def _correct_date_time(value):
-    '''corrects the times in the Excel test file to Python time
-    '''
-    _skip_if_no_xlrd()
-    _skip_if_no_mpl()
-    from pandas.io.date_converters import dt2ti
-
-    # if a excel time like '24:00' it converted to 23.07.2013 00:00'
-    # here, we just want the time component,
-    # since all inputs shall be equal
-    value = dt2ti(value)
-
-    #apply offset
-    value = _offset_time(value)
-
-    return value
-
-
-def read_excel_cell(filename):
-    '''read the excel cells into a dt object'''
-    _skip_if_no_xlrd()
-    # NameError: global name 'xlrd' is not defined
-    from xlrd import open_workbook, xldate_as_tuple
-    import datetime as dt
-    wb = open_workbook(filename)
-    sh = wb.sheet_by_name('min')
-    #get first time stamp
-    #TODO: the start row is: 12
-    ti_start = xldate_as_tuple(sh.row(12)[1].value, 1)
-    #get first last stamp
-    ti_end = xldate_as_tuple(sh.row(155)[1].value, 1)
-
-    #as timestamp
-    ti_start = dt.time(*ti_start[3:])
-    ti_end = dt.time(*ti_end[3:])
-
-    return (ti_start, ti_end)
-
-
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)[:10]
@@ -155,6 +92,8 @@ class ExcelTests(unittest.TestCase):
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
         self.xlsx1 = os.path.join(self.dirpath, 'test.xlsx')
+        self.xlsx_time = os.path.join(self.dirpath, 'test_time.xlsx')
+        self.xlsx_time_1904 = os.path.join(self.dirpath, 'test_time_1904.xlsx')
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
@@ -368,73 +307,60 @@ class ExcelTests(unittest.TestCase):
         tm.assert_frame_equal(df4, df5)
 
     def test_xlsx_table_hours(self):
-        #check if the hours are read incorrectly
+        # check if the hours are read incorrectly
         _skip_if_no_xlrd()
         _skip_if_no_openpyxl()
         _skip_if_no_mpl()
-        import datetime as dt
 
+        def read_excel_cell(filename):
+            # read the excel cells into a dt object
+            from xlrd import open_workbook, xldate_as_tuple
+            wb = open_workbook(filename)
+            sh = wb.sheet_by_name('min')
 
+            #TODO: the start row is: 12
+            ti_start = xldate_as_tuple(sh.row(12)[1].value, 1)
+            ti_end = xldate_as_tuple(sh.row(155)[1].value, 1)
+
+            ti_start = datetime.time(*ti_start[3:])
+            ti_end = datetime.time(*ti_end[3:])
+
+            return (ti_start, ti_end)
 
         # 1900 datemode file
-        filename = 'example_file_2013-07-25.xlsx'
-        pth = os.path.join(self.dirpath, filename)
+        pth = self.xlsx_time
         xlsx = ExcelFile(pth)
-        # parse_dates=False is necessary to obtain right sorting of rows in df
-        # TODO: this must actually be skiprows=11, header=10
-#        df =xlsx.parse('min', skiprows=12, header=10, index_col=1,
-#                         parse_dates=False, date_parser=correct_date_time)
-        df =xlsx.parse('min', skiprows=12, header=10, index_col=1,
-                         parse_dates=False, date_parser=_correct_date_time)
+        df = xlsx.parse('min', skiprows=12, header=None, index_col=1,
+                        parse_dates=False, date_parser=offset_datetime)
 
         df_start = df.index[0]
-        df_end = df.index[-1:]
-        # test: are the first/last index equal to the cell read in diretly by xlrd
+        df_end = df.index[-1]
+
         excel_cells = read_excel_cell(pth)
+        xl_start = excel_cells[0]
+        xl_end = excel_cells[1]
 
-        xl_start = _offset_time(excel_cells[0])
-        xl_end = _offset_time(excel_cells[1])
-
-        self.assertEqual(df_start, xl_start)
-        self.assertEqual(df_end, xl_end)
+        self.assert_(df_start == xl_start)
+        self.assert_(df_start == datetime.time(0,10))
+        self.assert_(df_end == xl_end)
+        self.assert_(df_end == datetime.time(0,0))
 
         #test Excel 1904 datemode
-        filename_1904 = 'example_file_2013-07-25_1904-dates.xlsx'
-        pth = os.path.join(self.dirpath, filename_1904)
-        xlsx = ExcelFile(pth)
-        # parse_dates=False is necessary to obtain right sorting of roes in df
-        # TODO: this must actually be skiprows=11
-        df =xlsx.parse('min', skiprows=12, header=10, index_col=1,
-                         parse_dates=False, date_parser=_correct_date_time)
+        xlsx = ExcelFile(self.xlsx_time_1904)
+        df = xlsx.parse('min', skiprows=12, header=None, index_col=1,
+                        parse_dates=False, date_parser=offset_datetime)
 
         df_start = df.index[0]
-        df_end = df.index[-1:]
+        df_end = df.index[-1]
 
         excel_cells = read_excel_cell(pth)
-        xl_start = _offset_time(excel_cells[0])
-        xl_end = _offset_time(excel_cells[1])
+        xl_start = excel_cells[0]
+        xl_end = excel_cells[1]
 
-        # test: are the first/last index equal to the cell read in diretly
-        self.assertEqual(df_start, xl_start)
-        self.assertEqual(df_end, xl_end)
-
-        # test if a produced datetime is equal to a datetime directly produced by xlrd
-        daydt_str = filename.split('.')[0][-10:]
-        daydt = dt.datetime.strptime(daydt_str, '%Y-%m-%d')
-#
-        df['date'] = daydt
-        df['time'] = df.index
-
-        #TODO review this
-#        df['datetime'] = df.apply(lambda x: pd.datetime.combine(x['date'], x['time'], axis=1))
-
-#        df.set_index(['datetime'])
-#        import datetime as dt
-#        dt_test = dt.datetime.combine(daydt, excel_cells[1])
-
-#        pdt_test = df.index[-1]
-
-#        self.assertEqual(dt_test, pdt_test)
+        self.assert_(df_start == xl_start)
+        self.assert_(df_start == datetime.time(0,10))
+        self.assert_(df_end == xl_end)
+        self.assert_(df_end == datetime.time(0,0))
 
     def test_specify_kind_xls(self):
         _skip_if_no_xlrd()
