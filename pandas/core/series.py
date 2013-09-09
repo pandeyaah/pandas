@@ -3021,56 +3021,57 @@ class Series(generic.NDFrame):
         new_values = com.take_1d(values, locs)
         return self._constructor(new_values, index=where, name=self.name)
 
-    def interpolate(self, method='linear'):
-        """
-        Interpolate missing values (after the first valid value)
+    # def interpolate(self, method='linear'):
+    #     # TODO: inherit from generic
+    #     """
+    #     Interpolate missing values (after the first valid value)
 
-        Parameters
-        ----------
-        method : {'linear', 'time', 'values'}
-            Interpolation method.
-            'time' interpolation works on daily and higher resolution
-            data to interpolate given length of interval
-            'values' using the actual index numeric values
+    #     Parameters
+    #     ----------
+    #     method : {'linear', 'time', 'values'}
+    #         Interpolation method.
+    #         'time' interpolation works on daily and higher resolution
+    #         data to interpolate given length of interval
+    #         'values' using the actual index numeric values
 
-        Returns
-        -------
-        interpolated : Series
-        """
-        if method == 'time':
-            if not self.is_time_series:
-                raise Exception('time-weighted interpolation only works'
-                                'on TimeSeries')
-            method = 'values'
-            # inds = pa.array([d.toordinal() for d in self.index])
+    #     Returns
+    #     -------
+    #     interpolated : Series
+    #     """
+    #     if method == 'time':
+    #         if not self.is_time_series:
+    #             raise Exception('time-weighted interpolation only works'
+    #                             'on TimeSeries')
+    #         method = 'values'
+    #         # inds = pa.array([d.toordinal() for d in self.index])
 
-        if method == 'values':
-            inds = self.index.values
-            # hack for DatetimeIndex, #1646
-            if issubclass(inds.dtype.type, np.datetime64):
-                inds = inds.view(pa.int64)
+    #     if method == 'values':
+    #         inds = self.index.values
+    #         # hack for DatetimeIndex, #1646
+    #         if issubclass(inds.dtype.type, np.datetime64):
+    #             inds = inds.view(pa.int64)
 
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = pa.arange(len(self))
+    #         if inds.dtype == np.object_:
+    #             inds = lib.maybe_convert_objects(inds)
+    #     else:
+    #         inds = pa.arange(len(self))
 
-        values = self.values
+    #     values = self.values
 
-        invalid = isnull(values)
-        valid = -invalid
+    #     invalid = isnull(values)
+    #     valid = -invalid
 
-        result = values.copy()
-        if valid.any():
-            firstIndex = valid.argmax()
-            valid = valid[firstIndex:]
-            invalid = invalid[firstIndex:]
-            inds = inds[firstIndex:]
+    #     result = values.copy()
+    #     if valid.any():
+    #         firstIndex = valid.argmax()
+    #         valid = valid[firstIndex:]
+    #         invalid = invalid[firstIndex:]
+    #         inds = inds[firstIndex:]
 
-            result[firstIndex:][invalid] = np.interp(
-                inds[invalid], inds[valid], values[firstIndex:][valid])
+    #         result[firstIndex:][invalid] = np.interp(
+    #             inds[invalid], inds[valid], values[firstIndex:][valid])
 
-        return self._constructor(result, index=self.index, name=self.name)
+    #     return self._constructor(result, index=self.index, name=self.name)
 
     @property
     def weekday(self):

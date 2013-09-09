@@ -12,6 +12,7 @@ import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.internals import BlockManager
+import pandas.core.array as pa
 import pandas.core.common as com
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange
@@ -1840,17 +1841,19 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data)
 
-    def interpolate(self, to_replace, method='pad', axis=0, inplace=False,
+    def interpolate(self, values=None, method='linear', axis=0, inplace=False,
                     limit=None):
         """Interpolate values according to different methods.
 
         Parameters
         ----------
-        to_replace : dict, Series
-        method : str
-        axis : int
-        inplace : bool
-        limit : int, default None
+        values : values at which to interpolate; will fill NaNs by default
+        method : str or int. One of {'linear', 'time', 'values' 'nearest',
+            'zero', 'slinear', 'quadratic', 'cubic'}. Or an integer
+            specifying the order of the spline interpolator to use
+        axis : int, default 0
+        inplace : bool, default False
+        limit : int, default None. Maximum number of NaNs to fill.
 
         Returns
         -------
@@ -1864,34 +1867,72 @@ class NDFrame(PandasObject):
         warn('DataFrame.interpolate will be removed in v0.13, please use '
              'either DataFrame.fillna or DataFrame.replace instead',
              FutureWarning)
-        if self._is_mixed_type and axis == 1:
-            return self.T.replace(to_replace, method=method, limit=limit).T
+        if self.ndim > 2:
+            raise NotImplementedError
+        elif self.ndim == 1:
+            if method == 'time':
+                if not self.is_time_series:
+                    raise Exception('time-weighted interpolation only works'
+                                    'on TimeSeries')
+                method = 'values'
+            if method == 'values':
+                inds = self.index.values
+                # hack for DatetimeIndex, #1646
+                if issubclass(inds.dtype.type, np.datetime64):
+                    inds = inds.view(pa.int64)
 
-        method = com._clean_fill_method(method)
-
-        if isinstance(to_replace, (dict, com.ABCSeries)):
-            if axis == 0:
-                return self.replace(to_replace, method=method, inplace=inplace,
-                                    limit=limit, axis=axis)
-            elif axis == 1:
-                obj = self.T
-                if inplace:
-                    obj.replace(to_replace, method=method, limit=limit,
-                                inplace=inplace, axis=0)
-                    return obj.T
-                return obj.replace(to_replace, method=method, limit=limit,
-                                   inplace=inplace, axis=0).T
+                if inds.dtype == np.object_:
+                    inds = lib.maybe_convert_objects(inds)
             else:
-                raise ValueError('Invalid value for axis')
+                inds = pa.arange(len(self))
+
+            values = self.values
+
+            invalid = isnull(values)
+            valid = -invalid
+
+            result = values.copy()
+            if valid.any():
+                firstIndex = valid.argmax()
+                valid = valid[firstIndex:]
+                invalid = invalid[firstIndex:]
+                inds = inds[firstIndex:]
+
+                result[firstIndex:][invalid] = np.interp(
+                    inds[invalid], inds[valid], values[firstIndex:][valid])
+
+            return self._constructor(result, index=self.index, name=self.name)
         else:
-            new_data = self._data.interpolate(method=method, axis=axis,
-                                              limit=limit, inplace=inplace,
-                                              missing=to_replace, coerce=False)
+            pass
 
-            if inplace:
-                self._data = new_data
-            else:
-                return self._constructor(new_data)
+        # if self._is_mixed_type and axis == 1:
+        #     return self.T.replace(to_replace, method=method, limit=limit).T
+
+        # method = com._clean_fill_method(method)
+
+        # if isinstance(to_replace, (dict, com.ABCSeries)):
+        #     if axis == 0:
+        #         return self.replace(to_replace, method=method, inplace=inplace,
+        #                             limit=limit, axis=axis)
+        #     elif axis == 1:
+        #         obj = self.T
+        #         if inplace:
+        #             obj.replace(to_replace, method=method, limit=limit,
+        #                         inplace=inplace, axis=0)
+        #             return obj.T
+        #         return obj.replace(to_replace, method=method, limit=limit,
+        #                            inplace=inplace, axis=0).T
+        #     else:
+        #         raise ValueError('Invalid value for axis')
+        # else:
+        #     new_data = self._data.interpolate(method=method, axis=axis,
+        #                                       limit=limit, inplace=inplace,
+        #                                       missing=to_replace, coerce=False)
+
+        #     if inplace:
+        #         self._data = new_data
+        #     else:
+        #         return self._constructor(new_data)
 
     #----------------------------------------------------------------------
     # Action Methods
