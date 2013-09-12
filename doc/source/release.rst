@@ -396,6 +396,8 @@ Bug Fixes
   - Fixed bug with reading compressed files in as ``bytes`` rather than ``str``
     in Python 3. Simplifies bytes-producing file-handling in Python 3
     (:issue:`3963`, :issue:`4785`).
+  - Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
+    separate metadata. (:issue:`4202`, :issue:`4830`)
 
 pandas 0.12.0
 -------------

@@ -64,14 +64,14 @@ class CheckNameIntegration(object):
         result = self.ts.copy()
         self.assertEquals(result.name, self.ts.name)
 
-    # def test_copy_index_name_checking(self):
-    # don't want to be able to modify the index stored elsewhere after
-    # making a copy
+    def test_copy_index_name_checking(self):
+        # don't want to be able to modify the index stored elsewhere after
+        # making a copy
 
-    #     self.ts.index.name = None
-    #     cp = self.ts.copy()
-    #     cp.index.name = 'foo'
-    #     self.assert_(self.ts.index.name is None)
+        self.ts.index.name = None
+        cp = self.ts.copy()
+        cp.index.name = 'foo'
+        self.assert_(self.ts.index.name is None)
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
