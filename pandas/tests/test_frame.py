@@ -1698,6 +1698,16 @@ class SafeForSparse(object):
 
     _multiprocess_can_split_ = True
 
+    def test_copy_index_name_checking(self):
+        # don't want to be able to modify the index stored elsewhere after
+        # making a copy
+        for attr in ('index', 'columns'):
+            ind = getattr(self.frame, attr)
+            ind.name = None
+            cp = self.frame.copy()
+            getattr(cp, attr).name = 'foo'
+            self.assert_(getattr(self.frame, attr).name is None)
+
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
         self.assertEqual(s.name, 'A')
@@ -5924,18 +5934,6 @@ class TestDataFrame(unittest.TestCase, CheckIndexing,
         # copy objects
         copy = self.mixed_frame.copy()
         self.assert_(copy._data is not self.mixed_frame._data)
-
-    def test_copy_index_name_checking(self):
-        # don't want to be able to modify the index stored elsewhere after
-        # making a copy
-
-        for attr in ('index', 'columns'):
-            ind = getattr(self.frame, attr)
-            ind.name = None
-            cp = self.frame.copy()
-            getattr(cp, attr)
-            cp.name = 'foo'
-            self.assert_(getattr(self.frame, attr) is None)
 
     def _check_method(self, method='pearson', check_minp=False):
         if not check_minp:

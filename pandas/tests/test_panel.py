@@ -62,7 +62,7 @@ class SafeForLongAndSparse(object):
         foo = repr(self.panel)
 
     def test_copy_names(self):
-        for attr in ('items', 'major_axis', 'minor_axis'):
+        for attr in ('major_axis', 'minor_axis'):
             getattr(self.panel, attr).name = None
             cp = self.panel.copy()
             getattr(cp, attr).name = 'foo'

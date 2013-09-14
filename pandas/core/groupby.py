@@ -1988,7 +1988,8 @@ class NDFrameGroupBy(GroupBy):
 
             # broadcasting
             if isinstance(res, Series):
-                if res.index is obj.index:
+                # TODO: Possibly could just check for length here...not clear
+                if res.index.identical(obj.index):
                     group.T.values[:] = res
                 else:
                     group.values[:] = res

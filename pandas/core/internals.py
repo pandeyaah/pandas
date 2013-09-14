@@ -2326,14 +2326,12 @@ class BlockManager(PandasObject):
         -------
         copy : BlockManager
         """
-        # if deep:
-        #     new_axes = [ax.copy(deep=deep) for ax in self.axes]
-        # else:
-        #     new_axes = list(self.axes)
-        new_axes=list(self.axes)
+        if deep:
+            new_axes = [ax.view() for ax in self.axes]
+        else:
+            new_axes = list(self.axes)
         return self.apply('copy', axes=new_axes, deep=deep,
-                          # ref_items=new_axes[0], do_integrity_check=False)
-                          do_integrity_check=False)
+                        ref_items=new_axes[0], do_integrity_check=False)
 
     def as_matrix(self, items=None):
         if len(self.blocks) == 0:
