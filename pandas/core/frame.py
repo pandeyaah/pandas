@@ -3518,31 +3518,14 @@ class DataFrame(NDFrame):
         -------
         shifted : DataFrame
         """
-        from pandas.core.series import _resolve_offset
-
         if periods == 0:
             return self
 
-        offset = _resolve_offset(freq, kwds)
-
-        if isinstance(offset, compat.string_types):
-            offset = datetools.to_offset(offset)
-
-        if offset is None:
+        if freq is None:
             indexer = com._shift_indexer(len(self), periods)
             new_data = self._data.shift(indexer, periods)
-        elif isinstance(self.index, PeriodIndex):
-            orig_offset = datetools.to_offset(self.index.freq)
-            if offset == orig_offset:
-                new_data = self._data.copy()
-                new_data.axes[1] = self.index.shift(periods)
-            else:
-                msg = ('Given freq %s does not match PeriodIndex freq %s' %
-                       (offset.rule_code, orig_offset.rule_code))
-                raise ValueError(msg)
         else:
-            new_data = self._data.copy()
-            new_data.axes[1] = self.index.shift(periods, offset)
+            return self.tshift(periods, freq, **kwds)
 
         return self._constructor(new_data)
 

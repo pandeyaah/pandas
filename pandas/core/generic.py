@@ -11,8 +11,10 @@ from pandas.core.index import Index, MultiIndex, _ensure_index, InvalidIndexErro
 import pandas.core.indexing as indexing
 from pandas.core.indexing import _maybe_convert_indices
 from pandas.tseries.index import DatetimeIndex
+from pandas.tseries.period import PeriodIndex
 from pandas.core.internals import BlockManager
 import pandas.core.common as com
+import pandas.core.datetools as datetools
 from pandas import compat, _np_version_under1p7
 from pandas.compat import map, zip, lrange
 from pandas.core.common import (isnull, notnull, is_list_like,
@@ -2667,7 +2669,7 @@ class NDFrame(PandasObject):
             result = np.minimum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
-    def tshift(self, periods=1, freq=None, **kwds):
+    def tshift(self, periods=1, freq=None, axis=0, **kwds):
         """
         Shift the time index, using the index's frequency if available
 
@@ -2677,6 +2679,7 @@ class NDFrame(PandasObject):
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, default None
             Increment to use from datetools module or time rule (e.g. 'EOM')
+        axis : int or basestring 
 
         Notes
         -----
@@ -2686,19 +2689,45 @@ class NDFrame(PandasObject):
 
         Returns
         -------
-        shifted : Series
+        shifted : NDFrame
         """
+        from pandas.core.series import _resolve_offset
+
+        index = self._get_axis(axis)
+        axis = self._get_axis_number(axis)
         if freq is None:
-            freq = getattr(self.index, 'freq', None)
+            freq = getattr(index, 'freq', None)
 
         if freq is None:
-            freq = getattr(self.index, 'inferred_freq', None)
+            freq = getattr(index, 'inferred_freq', None)
 
         if freq is None:
             msg = 'Freq was not given and was not set in the index'
             raise ValueError(msg)
 
-        return self.shift(periods, freq, **kwds)
+
+        if periods == 0:
+            return self
+
+        offset = _resolve_offset(freq, kwds)
+
+        if isinstance(offset, compat.string_types):
+            offset = datetools.to_offset(offset)
+
+        if isinstance(index, PeriodIndex):
+            orig_offset = datetools.to_offset(index.freq)
+            if offset == orig_offset:
+                new_data = self._data.copy()
+                new_data.axes[axis] = index.shift(periods)
+            else:
+                msg = ('Given freq %s does not match PeriodIndex freq %s' %
+                       (offset.rule_code, orig_offset.rule_code))
+                raise ValueError(msg)
+        else:
+            new_data = self._data.copy()
+            new_data.axes[axis] = index.shift(periods, offset)
+
+        return self._constructor(new_data)
 
     def truncate(self, before=None, after=None, copy=True):
         """Function truncate a sorted DataFrame / Series before and/or after
