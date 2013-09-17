@@ -3497,38 +3497,6 @@ class DataFrame(NDFrame):
         new_data = self._data.diff(periods)
         return self._constructor(new_data)
 
-    def shift(self, periods=1, freq=None, **kwds):
-        """
-        Shift the index of the DataFrame by desired number of periods with an
-        optional time freq
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from datetools module or time rule (e.g. 'EOM')
-
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        if not realigned
-
-        Returns
-        -------
-        shifted : DataFrame
-        """
-        if periods == 0:
-            return self
-
-        if freq is None:
-            indexer = com._shift_indexer(len(self), periods)
-            new_data = self._data.shift(indexer, periods)
-        else:
-            return self.tshift(periods, freq, **kwds)
-
-        return self._constructor(new_data)
-
     #----------------------------------------------------------------------
     # Function application
 

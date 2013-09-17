@@ -2669,6 +2669,39 @@ class NDFrame(PandasObject):
             result = np.minimum.accumulate(y, axis)
         return self._wrap_array(result, self.axes, copy=False)
 
+    def shift(self, periods=1, freq=None, axis=0, **kwds):
+        """
+        Shift the index of the DataFrame by desired number of periods with an
+        optional time freq
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to move, can be positive or negative
+        freq : DateOffset, timedelta, or time rule string, optional
+            Increment to use from datetools module or time rule (e.g. 'EOM')
+
+        Notes
+        -----
+        If freq is specified then the index values are shifted but the data
+        if not realigned
+
+        Returns
+        -------
+        shifted : DataFrame
+        """
+        if periods == 0:
+            return self
+
+        if freq is None and not len(kwds):
+            block_axis = self._get_block_manager_axis(axis)
+            indexer = com._shift_indexer(len(self), periods)
+            new_data = self._data.shift(indexer, periods, axis=block_axis)
+        else:
+            return self.tshift(periods, freq, **kwds)
+
+        return self._constructor(new_data)
+
     def tshift(self, periods=1, freq=None, axis=0, **kwds):
         """
         Shift the time index, using the index's frequency if available
@@ -2679,7 +2712,7 @@ class NDFrame(PandasObject):
             Number of periods to move, can be positive or negative
         freq : DateOffset, timedelta, or time rule string, default None
             Increment to use from datetools module or time rule (e.g. 'EOM')
-        axis : int or basestring 
+        axis : int or basestring
             Corresponds to the axis that contains the Index
 
         Notes
@@ -2692,7 +2725,7 @@ class NDFrame(PandasObject):
         -------
         shifted : NDFrame
         """
-        from pandas.core.series import _resolve_offset
+        from pandas.core.datetools import _resolve_offset
 
         index = self._get_axis(axis)
         if freq is None:
