@@ -2680,6 +2680,7 @@ class NDFrame(PandasObject):
         freq : DateOffset, timedelta, or time rule string, default None
             Increment to use from datetools module or time rule (e.g. 'EOM')
         axis : int or basestring 
+            Corresponds to the axis that contains the Index
 
         Notes
         -----
@@ -2694,7 +2695,6 @@ class NDFrame(PandasObject):
         from pandas.core.series import _resolve_offset
 
         index = self._get_axis(axis)
-        axis = self._get_axis_number(axis)
         if freq is None:
             freq = getattr(index, 'freq', None)
 
@@ -2714,18 +2714,19 @@ class NDFrame(PandasObject):
         if isinstance(offset, compat.string_types):
             offset = datetools.to_offset(offset)
 
+        block_axis = self._get_block_manager_axis(axis)
         if isinstance(index, PeriodIndex):
             orig_offset = datetools.to_offset(index.freq)
             if offset == orig_offset:
                 new_data = self._data.copy()
-                new_data.axes[axis] = index.shift(periods)
+                new_data.axes[block_axis] = index.shift(periods)
             else:
                 msg = ('Given freq %s does not match PeriodIndex freq %s' %
                        (offset.rule_code, orig_offset.rule_code))
                 raise ValueError(msg)
         else:
             new_data = self._data.copy()
-            new_data.axes[axis] = index.shift(periods, offset)
+            new_data.axes[block_axis] = index.shift(periods, offset)
 
         return self._constructor(new_data)
 
