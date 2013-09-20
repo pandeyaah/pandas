@@ -1847,10 +1847,12 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        values : values at which to interpolate; will fill NaNs by default
+        values : values or dict of values at which to interpolate;
+            will fill NaNs by default
         method : str or int. One of {'linear', 'time', 'values' 'nearest',
             'zero', 'slinear', 'quadratic', 'cubic'}. Or an integer
-            specifying the order of the spline interpolator to use
+            specifying the order of the spline interpolator to use. Is linear
+            by default.
         axis : int, default 0
         inplace : bool, default False
         limit : int, default None. Maximum number of NaNs to fill.
@@ -1863,13 +1865,11 @@ class NDFrame(PandasObject):
         --------
         reindex, replace, fillna
         """
-        from warnings import warn
-        warn('DataFrame.interpolate will be removed in v0.13, please use '
-             'either DataFrame.fillna or DataFrame.replace instead',
-             FutureWarning)
-        if self.ndim > 2:
-            raise NotImplementedError
-        elif self.ndim == 1:
+        # fill_methods = ['backfill', 'bfill', 'pad', 'ffill']
+        if values is None:  # Filling nans
+            nans = pd.isnull(self)
+
+        if self.ndim == 1:  # TODO: Refactor as much as possible while backcompat.
             if method == 'time':
                 if not self.is_time_series:
                     raise Exception('time-weighted interpolation only works'
@@ -1902,37 +1902,11 @@ class NDFrame(PandasObject):
                     inds[invalid], inds[valid], values[firstIndex:][valid])
 
             return self._constructor(result, index=self.index, name=self.name)
+        # elif self.ndim == 2:
+            # com.interpolate_2d()
         else:
-            pass
-
-        # if self._is_mixed_type and axis == 1:
-        #     return self.T.replace(to_replace, method=method, limit=limit).T
-
-        # method = com._clean_fill_method(method)
-
-        # if isinstance(to_replace, (dict, com.ABCSeries)):
-        #     if axis == 0:
-        #         return self.replace(to_replace, method=method, inplace=inplace,
-        #                             limit=limit, axis=axis)
-        #     elif axis == 1:
-        #         obj = self.T
-        #         if inplace:
-        #             obj.replace(to_replace, method=method, limit=limit,
-        #                         inplace=inplace, axis=0)
-        #             return obj.T
-        #         return obj.replace(to_replace, method=method, limit=limit,
-        #                            inplace=inplace, axis=0).T
-        #     else:
-        #         raise ValueError('Invalid value for axis')
-        # else:
-        #     new_data = self._data.interpolate(method=method, axis=axis,
-        #                                       limit=limit, inplace=inplace,
-        #                                       missing=to_replace, coerce=False)
-
-        #     if inplace:
-        #         self._data = new_data
-        #     else:
-        #         return self._constructor(new_data)
+            raise NotImplementedError("Interpolate is not implemented for"
+                                      "Panels")
 
     #----------------------------------------------------------------------
     # Action Methods

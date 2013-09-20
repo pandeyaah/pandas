@@ -1164,6 +1164,42 @@ def backfill_2d(values, limit=None, mask=None):
         pass
     return values
 
+
+def interpolate_1d(values, method='linear', axis=0, limit=None,
+                   fill_value=None):
+    """
+    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    will be 2-d.
+    """
+    # Treat linear separatly for backwards compat.
+    sp_methods = ['linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic']
+    fill_methods = ['backfill', 'bfill', 'pad', 'ffill']
+    if method in sp_methods or isinstance(method, int):
+        new_y = _interpolate_scipy_wrapper(values, method)
+
+        pass
+
+    if method in fill_methods:
+        fill = interpolate_2d(values, method, axis, limit, fill_value)
+        pass
+
+
+def _interpolate_scipy_wrapper(x, y, method, new_x, ndim=1, **kwargs):
+    """
+    passed off to scipy.interpolate.interp1d. method is scipy's kind.
+    Returns an array interpolated at new_x.
+    """
+    try:
+        from scipy import interpolate
+    except ImportError as _:
+        raise Exception('{} interpolation requires Scipy'.format(method))
+
+    new_x = np.asarray(new_x)
+    terp = interpolate.interp1d(x, y, **kwargs)
+    new_y = terp(new_x)
+    return new_y
+
+
 def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     """ perform an actual interpolation of values, values will be make 2-d if needed
         fills inplace, returns the result """
