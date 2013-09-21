@@ -1165,12 +1165,46 @@ def backfill_2d(values, limit=None, mask=None):
     return values
 
 
-def interpolate_1d(values, method='linear', axis=0, limit=None,
+def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
                    fill_value=None):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     will be 2-d.
     """
+    # Treat the original, non-scipy methods first.
+    if method in ['linear', 'time', 'values']:
+        if method == 'time':
+            # if not self.is_time_series:  equaivalent to?
+            if not issubclass(xvalues.dtype.type, np.datetime64):
+                raise Exception('time-weighted interpolation only works '
+                                'on TimeSeries')
+            method = 'values'
+        if method == 'values':
+            inds = np.asarray(xvalues)
+            # hack for DatetimeIndex, #1646
+            if issubclass(inds.dtype.type, np.datetime64):
+                inds = inds.view(pa.int64)
+
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
+        else:
+            inds = pa.arange(len(xvalues))
+
+        invalid = isnull(yvalues)
+        valid = -invalid
+
+        result = yvalues.copy()
+        if valid.any():
+            firstIndex = valid.argmax()
+            valid = valid[firstIndex:]
+            invalid = invalid[firstIndex:]
+            inds = inds[firstIndex:]
+
+            result[firstIndex:][invalid] = np.interp(
+                inds[invalid], inds[valid], yvalues[firstIndex:][valid])
+
+        return result
+
     # Treat linear separatly for backwards compat.
     sp_methods = ['linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic']
     fill_methods = ['backfill', 'bfill', 'pad', 'ffill']

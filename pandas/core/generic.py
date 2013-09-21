@@ -1841,73 +1841,104 @@ class NDFrame(PandasObject):
         else:
             return self._constructor(new_data)
 
-    def interpolate(self, values=None, method='linear', axis=0, inplace=False,
-                    limit=None):
+    def interpolate(self, index=None, values=None, new_values=None,
+                    method='linear', fill_value=None, inplace=False,
+                    limit=None, axis=0):
         """Interpolate values according to different methods.
 
         Parameters
         ----------
-        values : values or dict of values at which to interpolate;
-            will fill NaNs by default
-        method : str or int. One of {'linear', 'time', 'values' 'nearest',
-            'zero', 'slinear', 'quadratic', 'cubic'}. Or an integer
-            specifying the order of the spline interpolator to use. Is linear
-            by default.
-        axis : int, default 0
+        index : arraylike. The domain of the interpolation.  Uses the
+            Series' or DataFrame's index by default.
+        values : arraylike. The range of the interpolation. Uses the values
+            in a Series or DataFrame by default.  Can also be a column name.
+            index and values *must* be of the same length.
+        new_values : arraylike or None.
+            If new_values is None, will fill NaNs.
+            If new_values is an array, will return a Series containing
+            the interpolated values and whose index is new_values.
+        method : {'linear', 'time', 'values', 'index' 'nearest',
+                  'zero', 'slinear', 'quadratic', 'cubic'}
+            'linear': ignore the index and treat the values as equally spaced.
+                default
+            'time': interpolation works on daily and higher resolution
+                data to interpolate given length of interval
+            'index': use the actual numerical values of the index
+            'values': same as 'index'
+            'nearest': scipy, check
+            'zero': scipy, check
+            'slinear': scipy, check
+            'quadratic': scipy
+            'cubic': scipy
+        fill_value : float or int; How to handle interpolation outside the
+            original range (extrapolation).  Fills with the end value by default.
         inplace : bool, default False
         limit : int, default None. Maximum number of NaNs to fill.
+        axis : int, default 0
 
         Returns
         -------
-        frame : interpolated
+        if new_values is None:
+            Series or Frame of same shape with NaNs filled
+        else:
+            Series with index new_values
 
         See Also
         --------
         reindex, replace, fillna
+
+        Examples
+        --------
+
+        # Filling in NaNs:
+        >>> s = pd.Series([0, 1, np.nan, 3])
+        # index=s.index, values=s.values; new_values is None so filling NaNs
+        >>> s.interpolate()
+        0    0
+        1    1
+        2    2
+        3    3
+        dtype: float64
+
+        # Linear interpolation on Series at new values
+        >>> s = pd.Series([0, 1, 2, 3])
+        >>> s.interpolate(new_values=[0.5, 1.5, 2.5])
+        0.5    0.5
+        1.5    1.5
+        2.5    2.5
+        dtype: float64
+
+        # Using two columns from a DataFrame
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'Y': [1, 5, 9, np.nan]})
+        >>> df.interpolate(index='A', values='Y')  # fill the NaN
+           A   Y
+        0  1   1
+        1  2   5
+        2  3   9
+        3  4  13
         """
-        # fill_methods = ['backfill', 'bfill', 'pad', 'ffill']
-        if values is None:  # Filling nans
-            nans = pd.isnull(self)
+        dispatch = {1: com.interpolate_1d, 2: com.interpolate_2d}
 
-        if self.ndim == 1:  # TODO: Refactor as much as possible while backcompat.
-            if method == 'time':
-                if not self.is_time_series:
-                    raise Exception('time-weighted interpolation only works'
-                                    'on TimeSeries')
-                method = 'values'
-            if method == 'values':
-                inds = self.index.values
-                # hack for DatetimeIndex, #1646
-                if issubclass(inds.dtype.type, np.datetime64):
-                    inds = inds.view(pa.int64)
-
-                if inds.dtype == np.object_:
-                    inds = lib.maybe_convert_objects(inds)
+        if new_values is None:  # filling NaNs, returning similar NDFrame
+            if method == 'linear':
+                index = pa.arange(len(self))  # prior default
             else:
-                inds = pa.arange(len(self))
+                index = self.index
 
-            values = self.values
+            values = values or self._data.get_numeric_data().values
 
-            invalid = isnull(values)
-            valid = -invalid
+            interp_d = index.ndim
+            if interp_d > 2:
+                raise NotImplementedError("Only 1-d and 2-d interpolation"
+                                          "is currently supported.")
+            if values.ndim > 1:
+                raise NotImplementedError("Series only!")
 
-            result = values.copy()
-            if valid.any():
-                firstIndex = valid.argmax()
-                valid = valid[firstIndex:]
-                invalid = invalid[firstIndex:]
-                inds = inds[firstIndex:]
-
-                result[firstIndex:][invalid] = np.interp(
-                    inds[invalid], inds[valid], values[firstIndex:][valid])
-
-            return self._constructor(result, index=self.index, name=self.name)
-        # elif self.ndim == 2:
-            # com.interpolate_2d()
-        else:
-            raise NotImplementedError("Interpolate is not implemented for"
-                                      "Panels")
-
+            res = dispatch[interp_d](index, values, method=method, axis=axis,
+                                     limit=limit, fill_value=fill_value)
+            return self._constructor(res, index=index, name=self.name)
+        else:  # interpolating at new_values
+            raise NotImplementedError
     #----------------------------------------------------------------------
     # Action Methods
 

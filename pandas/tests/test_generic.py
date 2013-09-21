@@ -394,6 +394,34 @@ class TestSeries(unittest.TestCase, Generic):
         ts[2] = np.NaN
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
+    # New interpolation tests
+    def test_no_nan_interpolate(self):
+        s = Series([0, 1, 2, 3])
+        result = s.interpolate(2.5, method='linear')
+        assert(result, 2.5)
+
+    def test_nan_interpolate(self):
+        s = Series([0, 1, np.nan, 3])
+        result = s.interpolate(2.5, method='linear')
+        assert(result, 2.5)
+
+        result = s.interpolate()
+        expected = Series([0, 1, 2, 3], dtype=np.float64)
+        assert_series_equal(result, expected)
+
+    def test_nan_irregular_index(self):
+        s = Series([1, 2, np.nan, 4], index=[1, 3, 5, 9])
+        result = s.interpolate()
+        expected = Series([1., 2., 3., 4.], index=[1, 3, 5, 9])  # backwards compat :(
+        assert_series_equal(result, expected)
+
+    def test_nan_str_index(self):
+        s = Series([0, 1, 2, np.nan], index=list('abcd'))
+        result = s.interpolate()
+        expected = Series([0., 1., 2., 2.], index=list('abcd'))  # endpoints weird
+        assert_series_equal(result, expected)
+
+
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: assert_frame_equal(x,y)
