@@ -6,10 +6,11 @@ import unittest
 import nose
 
 import numpy as np
+from numpy import nan
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, Panel,
-                    isnull, notnull,date_range)
+                    isnull, notnull,date_range, _np_version_under1p7)
 from pandas.core.index import Index, MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 
@@ -154,9 +155,17 @@ class Generic(object):
         self.assertRaises(ValueError, lambda : obj1 or obj2)
         self.assertRaises(ValueError, lambda : not obj1)
 
+
 class TestSeries(unittest.TestCase, Generic):
     _typ = Series
     _comparator = lambda self, x, y: assert_series_equal(x,y)
+
+    def setUp(self):
+        self.ts = tm.makeTimeSeries()  # Was at top level in test_series
+        self.ts.name = 'ts'
+
+        self.series = tm.makeStringSeries()
+        self.series.name = 'series'
 
     def test_rename_mi(self):
         s = Series([11,21,31],
@@ -195,6 +204,196 @@ class TestSeries(unittest.TestCase, Generic):
 
         s = Series([False])
         self.assertRaises(ValueError, lambda : bool(s))
+
+    def test_interpolate(self):
+        ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
+
+        ts_copy = ts.copy()
+        ts_copy[5:10] = np.NaN
+
+        linear_interp = ts_copy.interpolate(method='linear')
+        self.assert_(np.array_equal(linear_interp, ts))
+
+        ord_ts = Series([d.toordinal() for d in self.ts.index],
+                        index=self.ts.index).astype(float)
+
+        ord_ts_copy = ord_ts.copy()
+        ord_ts_copy[5:10] = np.NaN
+
+        time_interp = ord_ts_copy.interpolate(method='time')
+        self.assert_(np.array_equal(time_interp, ord_ts))
+
+        # try time interpolation on a non-TimeSeries
+        self.assertRaises(Exception, self.series.interpolate, method='time')
+
+    def test_interpolate_corners(self):
+        s = Series([np.nan, np.nan])
+        assert_series_equal(s.interpolate(), s)
+
+        s = Series([]).interpolate()
+        assert_series_equal(s.interpolate(), s)
+
+    def test_interpolate_index_values(self):
+        s = Series(np.nan, index=np.sort(np.random.rand(30)))
+        s[::3] = np.random.randn(10)
+
+        vals = s.index.values.astype(float)
+
+        result = s.interpolate(method='values')
+
+        expected = s.copy()
+        bad = isnull(expected.values)
+        good = -bad
+        expected = Series(
+            np.interp(vals[bad], vals[good], s.values[good]), index=s.index[bad])
+
+        assert_series_equal(result[bad], expected)
+
+
+    def test_timedelta_fillna(self):
+        if _np_version_under1p7:
+            raise nose.SkipTest("timedelta broken in np 1.6.1")
+
+        #GH 3371
+        s = Series([Timestamp('20130101'), Timestamp('20130101'),
+                    Timestamp('20130102'), Timestamp('20130103 9:01:01')])
+        td = s.diff()
+
+        # reg fillna
+        result = td.fillna(0)
+        expected = Series([timedelta(0), timedelta(0), timedelta(1),
+                           timedelta(days=1, seconds=9*3600+60+1)])
+        assert_series_equal(result, expected)
+
+        # interprested as seconds
+        result = td.fillna(1)
+        expected = Series([timedelta(seconds=1), timedelta(0),
+                           timedelta(1), timedelta(days=1, seconds=9*3600+60+1)])
+        assert_series_equal(result, expected)
+
+        result = td.fillna(timedelta(days=1, seconds=1))
+        expected = Series([timedelta(days=1, seconds=1), timedelta(0),
+                           timedelta(1), timedelta(days=1, seconds=9*3600+60+1)])
+        assert_series_equal(result, expected)
+
+        result = td.fillna(np.timedelta64(int(1e9)))
+        expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
+                           timedelta(days=1, seconds=9*3600+60+1)])
+        assert_series_equal(result, expected)
+
+        from pandas import tslib
+        result = td.fillna(tslib.NaT)
+        expected = Series([tslib.NaT, timedelta(0), timedelta(1),
+                           timedelta(days=1, seconds=9*3600+60+1)], dtype='m8[ns]')
+        assert_series_equal(result, expected)
+
+        # ffill
+        td[2] = np.nan
+        result = td.ffill()
+        expected = td.fillna(0)
+        expected[0] = np.nan
+        assert_series_equal(result, expected)
+
+        # bfill
+        td[2] = np.nan
+        result = td.bfill()
+        expected = td.fillna(0)
+        expected[2] = timedelta(days=1, seconds=9*3600+60+1)
+        assert_series_equal(result, expected)
+
+    def test_datetime64_fillna(self):
+
+        s = Series([Timestamp('20130101'), Timestamp('20130101'),
+                    Timestamp('20130102'), Timestamp('20130103 9:01:01')])
+        s[2] = np.nan
+
+        # reg fillna
+        result = s.fillna(Timestamp('20130104'))
+        expected = Series([Timestamp('20130101'), Timestamp('20130101'),
+                           Timestamp('20130104'), Timestamp('20130103 9:01:01')])
+        assert_series_equal(result, expected)
+
+        from pandas import tslib
+        result = s.fillna(tslib.NaT)
+        expected = s
+        assert_series_equal(result, expected)
+
+        # ffill
+        result = s.ffill()
+        expected = Series([Timestamp('20130101'), Timestamp('20130101'),
+                           Timestamp('20130101'), Timestamp('20130103 9:01:01')])
+        assert_series_equal(result, expected)
+
+        # bfill
+        result = s.bfill()
+        expected = Series([Timestamp('20130101'), Timestamp('20130101'),
+                           Timestamp('20130103 9:01:01'),
+                           Timestamp('20130103 9:01:01')])
+        assert_series_equal(result, expected)
+
+    def test_fillna_int(self):
+        s = Series(np.random.randint(-100, 100, 50))
+        s.fillna(method='ffill', inplace=True)
+        assert_series_equal(s.fillna(method='ffill', inplace=False), s)
+
+    def test_fillna_raise(self):
+        s = Series(np.random.randint(-100, 100, 50))
+        self.assertRaises(TypeError, s.fillna, [1, 2])
+        self.assertRaises(TypeError, s.fillna, (1, 2))
+
+# TimeSeries-specific
+
+    def test_fillna(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+
+        self.assert_(np.array_equal(ts, ts.fillna(method='ffill')))
+
+        ts[2] = np.NaN
+
+        self.assert_(
+            np.array_equal(ts.fillna(method='ffill'), [0., 1., 1., 3., 4.]))
+        self.assert_(np.array_equal(ts.fillna(method='backfill'),
+                                    [0., 1., 3., 3., 4.]))
+
+        self.assert_(np.array_equal(ts.fillna(value=5), [0., 1., 5., 3., 4.]))
+
+        self.assertRaises(ValueError, ts.fillna)
+        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
+
+    def test_fillna_bug(self):
+        x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
+        filled = x.fillna(method='ffill')
+        expected = Series([nan, 1., 1., 3., 3.], x.index)
+        assert_series_equal(filled, expected)
+
+        filled = x.fillna(method='bfill')
+        expected = Series([1., 1., 3., 3., nan], x.index)
+        assert_series_equal(filled, expected)
+
+    def test_fillna_inplace(self):
+        x = Series([nan, 1., nan, 3., nan], ['z', 'a', 'b', 'c', 'd'])
+        y = x.copy()
+
+        y.fillna(value=0, inplace=True)
+
+        expected = x.fillna(value=0)
+        assert_series_equal(y, expected)
+
+    def test_fillna_invalid_method(self):
+        try:
+            self.ts.fillna(method='ffil')
+        except ValueError as inst:
+            self.assert_('ffil' in str(inst))
+
+    def test_ffill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.ffill(), ts.fillna(method='ffill'))
+
+    def test_bfill(self):
+        ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
+        ts[2] = np.NaN
+        assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
