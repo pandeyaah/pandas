@@ -1936,7 +1936,7 @@ class NDFrame(PandasObject):
 
             res = dispatch[interp_d](index, values, method=method, axis=axis,
                                      limit=limit, fill_value=fill_value)
-            return self._constructor(res, index=index, name=self.name)
+            return self._constructor(res, index=self.index, name=self.name)
         else:  # interpolating at new_values
             raise NotImplementedError
     #----------------------------------------------------------------------
