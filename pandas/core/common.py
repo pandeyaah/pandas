@@ -1165,6 +1165,15 @@ def backfill_2d(values, limit=None, mask=None):
     return values
 
 
+def _clean_interp_method(method):
+    valid = ['linear', 'time', 'values', 'nearest', 'zero', 'slinear',
+             'quadratic', 'cubic']
+    if method not in valid:
+        raise ValueError("method must be one of {}. Got '{}' instead.".format(
+            valid, method))
+    return method
+
+
 def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
                    fill_value=None):
     """
@@ -1172,6 +1181,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
     will be 2-d.
     """
     # Treat the original, non-scipy methods first.
+    method = _clean_interp_method(method)
+
     if method in ['linear', 'time', 'values']:
         if method == 'time':
             # if not self.is_time_series:  equaivalent to?
@@ -1190,8 +1201,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
         else:
             inds = pa.arange(len(xvalues))
 
-        invalid = isnull(yvalues)
-        valid = -invalid
+        valid, invalid = _interpolate_mask_nans(inds, yvalues)
 
         result = yvalues.copy()
         if valid.any():
@@ -1204,32 +1214,45 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
                 inds[invalid], inds[valid], yvalues[firstIndex:][valid])
 
         return result
-
-    # Treat linear separatly for backwards compat.
-    sp_methods = ['linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic']
-    fill_methods = ['backfill', 'bfill', 'pad', 'ffill']
+    sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic']
     if method in sp_methods or isinstance(method, int):
-        new_y = _interpolate_scipy_wrapper(values, method)
+        invalid = isnull(yvalues)
+        valid = ~invalid
+        valid_y = yvalues[valid]
+        valid_x = xvalues[valid]
+        new_x = xvalues[invalid]
 
-        pass
+        result = yvalues.copy()
+        if valid.any():
+            firstIndex = valid.argmax()
+            firstIndex = valid.argmax()
+            valid = valid[firstIndex:]
+            invalid = invalid[firstIndex:]
+            xvalues = xvalues[firstIndex:]
 
-    if method in fill_methods:
-        fill = interpolate_2d(values, method, axis, limit, fill_value)
-        pass
+            result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
+                valid_y, new_x, method=method)
+        return result
 
 
-def _interpolate_scipy_wrapper(x, y, method, new_x, ndim=1, **kwargs):
+def _interpolate_mask_nans(inds, yvalues):
+    invalid = isnull(yvalues)
+    valid = -invalid
+    return valid, invalid
+
+
+def _interpolate_scipy_wrapper(x, y, new_x, method):
     """
     passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.
     """
     try:
         from scipy import interpolate
-    except ImportError as _:
+    except ImportError:
         raise Exception('{} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-    terp = interpolate.interp1d(x, y, **kwargs)
+    terp = interpolate.interp1d(x, y, kind=method)
     new_y = terp(new_x)
     return new_y
 
