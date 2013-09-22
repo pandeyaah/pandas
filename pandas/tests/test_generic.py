@@ -395,16 +395,8 @@ class TestSeries(unittest.TestCase, Generic):
         assert_series_equal(ts.bfill(), ts.fillna(method='bfill'))
 
     # New interpolation tests
-    def test_no_nan_interpolate(self):
-        s = Series([0, 1, 2, 3])
-        result = s.interpolate(2.5, method='linear')
-        assert(result, 2.5)
-
     def test_nan_interpolate(self):
         s = Series([0, 1, np.nan, 3])
-        result = s.interpolate(2.5, method='linear')
-        assert(result, 2.5)
-
         result = s.interpolate()
         expected = Series([0, 1, 2, 3], dtype=np.float64)
         assert_series_equal(result, expected)
@@ -421,6 +413,34 @@ class TestSeries(unittest.TestCase, Generic):
         expected = Series([0., 1., 2., 2.], index=list('abcd'))  # endpoints weird
         assert_series_equal(result, expected)
 
+    def test_interp_quad(self):
+        sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
+        result = sq.interpolate(method='quadratic')
+        expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
+        assert_series_equal(result, expected)
+
+    def test_interp_scipy(self):
+        s = Series([1, 3, np.nan, 12, np.nan, 25])
+        # slinear
+        expected = Series([1., 3., 7.5, 12., 18.5, 25.])
+        result = s.interpolate(method='slinear')
+        assert_series_equal(result, expected)
+        # nearest
+        expected = Series([1., 3., 3., 12., 12., 25.])
+        result = s.interpolate(method='nearest')
+        assert_series_equal(result, expected)
+        # zero
+        expected = Series([1., 3., 3., 12., 12., 25.])
+        result = s.interpolate(method='zero')
+        assert_series_equal(result, expected)
+        # quadratic
+        expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
+        result = s.interpolate(method='quadratic')
+        assert_series_equal(result, expected)
+        # cubic
+        expected = Series([1., 3., 6.8, 12., 18.2, 25.])
+        result = s.interpolate(method='cubic')
+        assert_series_equal(result, expected)
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
