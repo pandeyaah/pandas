@@ -249,10 +249,6 @@ class TestSeries(unittest.TestCase, Generic):
 
         assert_series_equal(result[bad], expected)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> f0f75f3592fd1abdd2bb1b5016b8d43d2f353359
     def test_timedelta_fillna(self):
         if _np_version_under1p7:
             raise nose.SkipTest("timedelta broken in np 1.6.1")
