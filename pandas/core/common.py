@@ -1183,6 +1183,16 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
     # Treat the original, non-scipy methods first.
     method = _clean_interp_method(method)
 
+    invalid = isnull(yvalues)
+    valid = -invalid
+
+    if valid.any():
+        firstIndex = valid.argmax()
+        valid = valid[firstIndex:]
+        invalid = invalid[firstIndex:]
+    else:
+        return np.ones_like(xvalues) * np.nan
+
     if method in ['linear', 'time', 'values']:
         if method == 'time':
             # if not self.is_time_series:  equaivalent to?
@@ -1201,44 +1211,25 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
         else:
             inds = pa.arange(len(xvalues))
 
-        valid, invalid = _interpolate_mask_nans(inds, yvalues)
+        inds = inds[firstIndex:]
 
         result = yvalues.copy()
-        if valid.any():
-            firstIndex = valid.argmax()
-            valid = valid[firstIndex:]
-            invalid = invalid[firstIndex:]
-            inds = inds[firstIndex:]
-
-            result[firstIndex:][invalid] = np.interp(
-                inds[invalid], inds[valid], yvalues[firstIndex:][valid])
+        result[firstIndex:][invalid] = np.interp(
+            inds[invalid], inds[valid], yvalues[firstIndex:][valid])
 
         return result
+
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic']
     if method in sp_methods or isinstance(method, int):
-        invalid = isnull(yvalues)
-        valid = ~invalid
         valid_y = yvalues[valid]
         valid_x = xvalues[valid]
         new_x = xvalues[invalid]
 
-        result = yvalues.copy()
-        if valid.any():
-            firstIndex = valid.argmax()
-            firstIndex = valid.argmax()
-            valid = valid[firstIndex:]
-            invalid = invalid[firstIndex:]
-            xvalues = xvalues[firstIndex:]
+        xvalues = xvalues[firstIndex:]
 
-            result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
-                valid_y, new_x, method=method)
+        result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
+            valid_y, new_x, method=method)
         return result
-
-
-def _interpolate_mask_nans(inds, yvalues):
-    invalid = isnull(yvalues)
-    valid = -invalid
-    return valid, invalid
 
 
 def _interpolate_scipy_wrapper(x, y, new_x, method):
