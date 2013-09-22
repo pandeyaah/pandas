@@ -1924,10 +1924,11 @@ class NDFrame(PandasObject):
                 index = pa.arange(len(self))  # prior default
             else:
                 index = self.index
-
-            values = values or self._data.get_numeric_data().values
+            if values is None:
+                values = self._data.get_numeric_data().values
 
             interp_d = index.ndim
+
             if interp_d > 2:
                 raise NotImplementedError("Only 1-d and 2-d interpolation"
                                           "is currently supported.")
@@ -1936,6 +1937,8 @@ class NDFrame(PandasObject):
 
             res = dispatch[interp_d](index, values, method=method, axis=axis,
                                      limit=limit, fill_value=fill_value)
+            # What index to use for return Series? Original for NaN filling,
+            # the given index for interpolation?
             return self._constructor(res, index=self.index, name=self.name)
         else:  # interpolating at new_values
             raise NotImplementedError
