@@ -1873,7 +1873,7 @@ class NDFrame(PandasObject):
         fill_value : float or int; How to handle interpolation outside the
             original range (extrapolation).  Fills with the end value by default.
         inplace : bool, default False
-        limit : int, default None. Maximum number of NaNs to fill.
+        limit : int, default None. Maximum number of consecutive NaNs to fill.
         axis : int, default 0
 
         Returns
