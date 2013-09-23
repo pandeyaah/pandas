@@ -419,7 +419,7 @@ class TestSeries(unittest.TestCase, Generic):
         expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
-    def test_interp_scipy(self):
+    def test_interp_scipy_basic(self):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -441,6 +441,16 @@ class TestSeries(unittest.TestCase, Generic):
         expected = Series([1., 3., 6.8, 12., 18.2, 25.])
         result = s.interpolate(method='cubic')
         assert_series_equal(result, expected)
+
+    def test_interp_limit(self):
+        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
+        expected = Series([1., 3., 5., 7., np.nan, 11.])
+        result = s.interpolate(method='linear', limit=2)
+        assert_series_equal(result, expected)
+
+        result = s.interpolate(method='quadratic', limit=2)
+        assert_series_equal(result, expected)
+
 
 class TestDataFrame(unittest.TestCase, Generic):
     _typ = DataFrame
