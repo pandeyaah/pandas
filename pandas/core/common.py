@@ -1168,17 +1168,20 @@ def backfill_2d(values, limit=None, mask=None):
 def _clean_interp_method(method):
     valid = ['linear', 'time', 'values', 'nearest', 'zero', 'slinear',
              'quadratic', 'cubic']
-    if method not in valid:
-        raise ValueError("method must be one of {}. Got '{}' instead.".format(
-            valid, method))
+    if method not in valid and not isinstance(2, int):
+        raise ValueError("method must be one of {} or a positive interger. "
+                         "Got '{}' instead.".format(valid, method))
     return method
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
-                   fill_value=None):
+                   fill_value=None, bounds_error=False):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     will be 2-d.
+
+    Bounds_error is currently hardcoded to False since non-scipy ones don't
+    take it as an argumnet.
     """
     # Treat the original, non-scipy methods first.
     method = _clean_interp_method(method)
@@ -1190,6 +1193,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
         firstIndex = valid.argmax()
         valid = valid[firstIndex:]
         invalid = invalid[firstIndex:]
+        result = yvalues.copy()
     else:
         return np.ones_like(xvalues) * np.nan
 
@@ -1209,11 +1213,10 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
         else:
-            inds = pa.arange(len(xvalues))
+            inds = xvalues
 
         inds = inds[firstIndex:]
 
-        result = yvalues.copy()
         result[firstIndex:][invalid] = np.interp(
             inds[invalid], inds[valid], yvalues[firstIndex:][valid])
 
@@ -1228,11 +1231,13 @@ def interpolate_1d(xvalues, yvalues, method='linear', axis=0, limit=None,
         xvalues = xvalues[firstIndex:]
 
         result[firstIndex:][invalid] = _interpolate_scipy_wrapper(valid_x,
-            valid_y, new_x, method=method)
+            valid_y, new_x, method=method, fill_value=fill_value,
+            bounds_error=bounds_error)
         return result
 
 
-def _interpolate_scipy_wrapper(x, y, new_x, method):
+def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
+                               bounds_error=False):
     """
     passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.
@@ -1243,7 +1248,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method):
         raise Exception('{} interpolation requires Scipy'.format(method))
 
     new_x = np.asarray(new_x)
-    terp = interpolate.interp1d(x, y, kind=method)
+    terp = interpolate.interp1d(x, y, kind=method, fill_value=fill_value,
+                                bounds_error=bounds_error)
     new_y = terp(new_x)
     return new_y
 

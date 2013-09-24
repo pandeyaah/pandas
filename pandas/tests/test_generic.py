@@ -443,6 +443,7 @@ class TestSeries(unittest.TestCase, Generic):
         assert_series_equal(result, expected)
 
     def test_interp_limit(self):
+        #failing. not implemented
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
         expected = Series([1., 3., 5., 7., np.nan, 11.])
         result = s.interpolate(method='linear', limit=2)
@@ -450,6 +451,10 @@ class TestSeries(unittest.TestCase, Generic):
 
         result = s.interpolate(method='quadratic', limit=2)
         assert_series_equal(result, expected)
+
+        df = pd.DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                           'B': [1, 4, 9, np.nan, np.nan, np.nan, 49],
+                           'C': [1, 2, 3, 5, 8, 13, 21], 'D': list('abcdefg')})
 
 
 class TestDataFrame(unittest.TestCase, Generic):
@@ -468,6 +473,65 @@ class TestDataFrame(unittest.TestCase, Generic):
         result = o._get_numeric_data()
         expected = DataFrame(index=[0,1,2],dtype=object)
         self._compare(result, expected)
+
+    def test_interp_basic(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [1, 4, 9, np.nan],
+                        'C': [1, 2, 3, 5], 'D': list('abcd')})
+        expected = DataFrame({'A': [1, 2, 3, 4], 'B': [1, 4, 9, 9],
+                              'C': [1, 2, 3, 5], 'D': list('abcd')})
+        result = df.interpolate()
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C')
+        expected = DataFrame({'A': [1, 2, 2.6666667, 4], 'B': [1, 4, 9, 9],
+                              'C': [1, 2, 3, 5], 'D': list('abcd')})
+
+    def test_interp_combo(self):
+        df = DataFrame({'A': [1., 2., np.nan, 4.], 'B': [1, 4, 9, np.nan],
+                'C': [1., 2., 3., 5.], 'D': list('abcd')})
+        result = df.interpolate(values='A', index='C')
+        expected = expected = DataFrame({'A': [1, 2, 3, 4], 'C': [1, 2, 3, 5]})
+        assert_frame_equal(result, expected)
+
+    def test_interp_leading_nan(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
+        result = df.interpolate(values='A', index='B')
+        expected = DataFrame({'A': [1, 2, 3, 4]})
+        assert_frame_equal(result, expected)
+
+    def test_vairous(self):
+        df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
+                        'C': [1, 2, 3, 5, 8, 13, 21]})
+        result = df.interpolate(index='C', values='C', method=1)
+        expected = df[['A', 'C']].copy()
+        expected.A.loc[2] = 2.66666667
+        expected.A.loc[4] = 5.76923077
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C', values='C', method='cubic')
+        expected.A.loc[2] = 2.81621174
+        expected.A.loc[4] = 5.64146581
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C', values='C', method='nearest')
+        expected.A.loc[2] = 2
+        expected.A.loc[4] = 5
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C', values='C', method='quadratic')
+        expected.A.loc[2] = 2.82533638
+        expected.A.loc[4] = 6.02817974
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C', values='C', method='slinear')
+        expected.A.loc[2] = 2.66666667
+        expected.A.loc[4] = 5.76923077
+        assert_frame_equal(result, expected)
+
+        result = df.interpolate(index='C', values='C', method='zero')
+        expected.A.loc[2] = 2.
+        expected.A.loc[4] = 5
+        assert_frame_equal(result, expected)
 
 class TestPanel(unittest.TestCase, Generic):
     _typ = Panel

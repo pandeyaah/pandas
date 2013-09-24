@@ -1848,15 +1848,16 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        index : arraylike. The domain of the interpolation.  Uses the
-            Series' or DataFrame's index by default.
-        values : arraylike. The range of the interpolation. Uses the values
+        index : The domain of the interpolation.  Uses the
+            Series' or DataFrame's index by default.  Can be another column
+            of the DataFrame by passing the column name.
+        values : The range of the interpolation. Uses the values
             in a Series or DataFrame by default.  Can also be a column name.
             index and values *must* be of the same length.
         new_values : arraylike or None.
             If new_values is None, will fill NaNs.
             If new_values is an array, will return a Series containing
-            the interpolated values and whose index is new_values.
+            the interpolated values whose index is new_values.
         method : {'linear', 'time', 'values', 'index' 'nearest',
                   'zero', 'slinear', 'quadratic', 'cubic'}
             'linear': ignore the index and treat the values as equally spaced.
@@ -1919,27 +1920,48 @@ class NDFrame(PandasObject):
         """
         dispatch = {1: com.interpolate_1d, 2: com.interpolate_2d}
 
+        if method == 'linear' and index is None:
+            index = pa.arange(len(self))  # prior default
+        elif index is None:
+            index = self.index
+        else:
+            index = self[index]
+
+        interp_d = index.ndim
+
+        if values is None:
+            values = self._data.get_numeric_data()
+            nonnumeric = self._data.items - values.items  # has to be a better way?
+        else:
+            # handle dataframe columns or arbitrary arrays?
+            # is there any use for arbitrary arrays?
+            values = self[list(values)]._data  # wont work with axis or arrays
+            nonnumeric = {}
+        # hacky
+        if self.ndim == 1:
+            values = values.values
+        elif self.ndim == 2:
+            values = self[values.items].values
+        else:
+            raise NotImplementedError("Panel not yet supported.")
+
         if new_values is None:  # filling NaNs, returning similar NDFrame
-            if method == 'linear':
-                index = pa.arange(len(self))  # prior default
-            else:
-                index = self.index
-            if values is None:
-                values = self._data.get_numeric_data().values
-
-            interp_d = index.ndim
-
             if interp_d > 2:
                 raise NotImplementedError("Only 1-d and 2-d interpolation"
                                           "is currently supported.")
             if values.ndim > 1:
-                raise NotImplementedError("Series only!")
-
-            res = dispatch[interp_d](index, values, method=method, axis=axis,
-                                     limit=limit, fill_value=fill_value)
-            # What index to use for return Series? Original for NaN filling,
-            # the given index for interpolation?
-            return self._constructor(res, index=self.index, name=self.name)
+                res = [dispatch[interp_d](index, x, method=method, axis=axis,
+                                          limit=limit, fill_value=fill_value)
+                       for x in values.T]
+                res = np.array(res).T
+            else:
+                res = dispatch[interp_d](index, values, method=method, axis=axis,
+                                         limit=limit, fill_value=fill_value)
+            # TODO: Losing name on series, columns on dataframe
+            d = self._construct_axes_dict()
+            if nonnumeric:
+                d['columns'] = d['columns'] - nonnumeric  # TODO: keep nonumerics
+            return self._constructor(res, **d)
         else:  # interpolating at new_values
             raise NotImplementedError
     #----------------------------------------------------------------------
