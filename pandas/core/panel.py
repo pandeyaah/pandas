@@ -92,13 +92,8 @@ def panel_index(time, panels, names=['time', 'panel']):
 
 
 def _arith_method(func, name):
-    # work only for scalars
 
     def f(self, other):
-        if not np.isscalar(other):
-            raise ValueError('Simple arithmetic with %s can only be '
-                             'done with scalar values' % self._constructor.__name__)
-
         return self._combine(other, func)
     f.__name__ = name
     return f
