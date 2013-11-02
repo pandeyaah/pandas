@@ -306,22 +306,26 @@ def set_trace():
 
 
 @contextmanager
-def ensure_clean(filename=None, return_filelike=False):
+def ensure_clean(filename=None, return_filelike=False, make_tempfile=True):
     """Gets a temporary path and agrees to remove on close.
 
     Parameters
     ----------
     filename : str (optional)
         if None, creates a temporary file which is then removed when out of
-        scope.
+        scope. if passed, creates temporary file with filename as ending.
     return_filelike: bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
         savefig and other functions which want to append extensions. Ignores
         filename if True.
+    make_tempfile : bool (default True)
+        if False, doesn't create a tempfile. Be careful about passing False,
+        it makes it more likely that we would not be playing nicely.
     """
+    filename = filename or ''
 
     if return_filelike:
-        f = tempfile.TemporaryFile()
+        f = tempfile.TemporaryFile(suffix=filename)
         try:
             yield f
         finally:
@@ -329,8 +333,8 @@ def ensure_clean(filename=None, return_filelike=False):
 
     else:
         # if we are not passed a filename, generate a temporary
-        if filename is None:
-            filename = tempfile.mkstemp()[1]
+        if make_tempfile or not filename:
+            filename = tempfile.mkstemp(suffix=filename)[1]
 
         try:
             yield filename
@@ -339,7 +343,7 @@ def ensure_clean(filename=None, return_filelike=False):
                 if os.path.exists(filename):
                     os.remove(filename)
             except Exception as e:
-                print(e)
+                print("Exception on removing file: %s" % e)
 
 
 def get_data_path(f=''):
