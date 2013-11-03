@@ -314,7 +314,7 @@ def ensure_clean(filename=None, return_filelike=False, make_tempfile=True):
     filename : str (optional)
         if None, creates a temporary file which is then removed when out of
         scope. if passed, creates temporary file with filename as ending.
-    return_filelike: bool (default False)
+    return_filelike : bool (default False)
         if True, returns a file-like which is *always* cleaned. Necessary for
         savefig and other functions which want to append extensions. Ignores
         filename if True.
@@ -332,15 +332,14 @@ def ensure_clean(filename=None, return_filelike=False, make_tempfile=True):
             f.close()
 
     else:
-        # if we are not passed a filename, generate a temporary
-        if make_tempfile or not filename:
-            filename = tempfile.mkstemp(suffix=filename)[1]
-
         try:
+            # if we are not passed a filename, generate a temporary
+            if make_tempfile or not filename:
+                filename = tempfile.mkstemp(suffix=filename)[1]
             yield filename
         finally:
             try:
-                if os.path.exists(filename):
+                if filename and os.path.exists(filename):
                     os.remove(filename)
             except Exception as e:
                 print("Exception on removing file: %s" % e)
