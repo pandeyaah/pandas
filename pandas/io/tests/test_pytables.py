@@ -157,7 +157,7 @@ class TestHDFStore(unittest.TestCase):
 
         # GH4584
         # API issue when to_hdf doesn't acdept append AND format args
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path,'df',append=True,format='table')
@@ -169,7 +169,7 @@ class TestHDFStore(unittest.TestCase):
             df.iloc[10:].to_hdf(path,'df',append=True,format='table')
             assert_frame_equal(read_hdf(path,'df'),df)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.iloc[:10].to_hdf(path,'df',append=True)
@@ -181,7 +181,7 @@ class TestHDFStore(unittest.TestCase):
             df.iloc[10:].to_hdf(path,'df',append=True)
             assert_frame_equal(read_hdf(path,'df'),df)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path,'df',append=False,format='fixed')
@@ -223,7 +223,7 @@ class TestHDFStore(unittest.TestCase):
             store.append('df',df.iloc[10:],append=True,format=None)
             assert_frame_equal(read_hdf(path,'df'),df)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             # invalid
             df = tm.makeDataFrame()
@@ -256,7 +256,7 @@ class TestHDFStore(unittest.TestCase):
 
             pandas.set_option('io.hdf.default_format',None)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
 
@@ -381,7 +381,7 @@ class TestHDFStore(unittest.TestCase):
 
         def check(mode):
 
-            with tm.ensure_clean(self.path, make_tempfile=False) as path:
+            with tm.ensure_clean(self.path) as path:
 
                 # constructor
                 if mode in ['r']:
@@ -392,7 +392,7 @@ class TestHDFStore(unittest.TestCase):
                     self.assert_(store._handle.mode == mode)
                     store.close()
 
-            with tm.ensure_clean(self.path, make_tempfile=False) as path:
+            with tm.ensure_clean(self.path) as path:
 
                 # context
                 if mode in ['r']:
@@ -404,7 +404,7 @@ class TestHDFStore(unittest.TestCase):
                     with get_store(path,mode=mode) as store:
                         self.assert_(store._handle.mode == mode)
 
-            with tm.ensure_clean(self.path, make_tempfile=False) as path:
+            with tm.ensure_clean(self.path) as path:
 
                 # conv write
                 if mode in ['r']:
@@ -427,7 +427,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_reopen_handle(self):
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             store = HDFStore(path,mode='a')
             store['a'] = tm.makeTimeSeries()
@@ -1496,7 +1496,7 @@ class TestHDFStore(unittest.TestCase):
             expected = df.reindex(columns=['A','B'])
             tm.assert_frame_equal(result,expected)
 
-        with tm.ensure_clean('test.hdf', make_tempfile=False) as path:
+        with tm.ensure_clean('test.hdf') as path:
             df.to_hdf(path,'df',format='table')
             result = read_hdf(path,'df',columns=['A','B'])
             expected = df.reindex(columns=['A','B'])
@@ -2111,7 +2111,7 @@ class TestHDFStore(unittest.TestCase):
             self.assertRaises(ValueError,  store.select, 'wp', "major_axis<'20000108' & minor_axis['A', 'B']")
 
         # from the docs
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
             dfq = DataFrame(np.random.randn(10,4),columns=list('ABCD'),index=date_range('20130101',periods=10))
             dfq.to_hdf(path,'dfq',format='table',data_columns=True)
 
@@ -2120,7 +2120,7 @@ class TestHDFStore(unittest.TestCase):
             read_hdf(path,'dfq',where="A>0 or C>0")
 
         # catch the invalid reference
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
             dfq = DataFrame(np.random.randn(10,4),columns=list('ABCD'),index=date_range('20130101',periods=10))
             dfq.to_hdf(path,'dfq',format='table')
 
@@ -2873,14 +2873,14 @@ class TestHDFStore(unittest.TestCase):
             result = concat(results)
             tm.assert_frame_equal(result, expected)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path,'df_non_table')
             self.assertRaises(TypeError, read_hdf, path,'df_non_table',chunksize=100)
             self.assertRaises(TypeError, read_hdf, path,'df_non_table',iterator=True)
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path,'df',format='table')
@@ -2962,7 +2962,7 @@ class TestHDFStore(unittest.TestCase):
 
     def test_retain_index_attributes2(self):
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             with tm.assert_produces_warning(expected_warning=AttributeConflictWarning):
 
@@ -3445,7 +3445,7 @@ class TestHDFStore(unittest.TestCase):
     def test_multiple_open_close(self):
         # GH 4409, open & close multiple times
 
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path,'df',mode='w',format='table')
@@ -3507,7 +3507,7 @@ class TestHDFStore(unittest.TestCase):
             self.assert_(not store2.is_open)
 
         # ops on a closed store
-        with tm.ensure_clean(self.path, make_tempfile=False) as path:
+        with tm.ensure_clean(self.path) as path:
 
             df = tm.makeDataFrame()
             df.to_hdf(path,'df',mode='w',format='table')
