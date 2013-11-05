@@ -325,12 +325,11 @@ class _TimeOp(object):
         if not is_list_like(values):
             values = np.array([values])
         inferred_type = lib.infer_dtype(values)
-        is_all_nan = pd.isnull(values).all()
 
         if inferred_type in ('datetime64', 'datetime', 'date', 'time'):
             # if we have a other of timedelta, but use pd.NaT here we
             # we are in the wrong path
-            if other is not None and other.dtype == 'timedelta64[ns]':
+            if other is not None and other.dtype == 'timedelta64[ns]' and all(isnull(v) for v in values):
                 values = np.empty(values.shape,dtype=other.dtype)
                 values[:] = tslib.iNaT
 
@@ -365,7 +364,7 @@ class _TimeOp(object):
         elif inferred_type == 'floating':
 
             # all nan, so ok, use the other dtype (e.g. timedelta or datetime)
-            if is_all_nan:
+            if isnull(values).all():
                 values = np.empty(values.shape,dtype=other.dtype)
                 values[:] = tslib.iNaT
             else:
