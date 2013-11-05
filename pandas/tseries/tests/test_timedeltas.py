@@ -249,21 +249,17 @@ class TestTimedeltas(unittest.TestCase):
         actual = s1 - timedelta_NaT
         assert_series_equal(actual, sn)
 
-        # TODO: This should really pass.
-        # actual = s1 + NA
-        # assert_series_equal(actual, sn)
-        # actual = s1 - NA
-        # assert_series_equal(actual, sn)
+        actual = s1 + NA
+        assert_series_equal(actual, sn)
+        actual = s1 - NA
+        assert_series_equal(actual, sn)
 
-        # NOTE: This fails on datatype grounds.
-        # The analogue for frames, below, passes.
-        # actual = s1 + pd.NaT  # NaT is datetime, not timedelta
-        # assert_series_equal(actual, sn)
-        # actual = s2 - pd.NaT
-        # assert_series_equal(actual, sn)
+        actual = s1 + pd.NaT  # NaT is datetime, not timedelta
+        assert_series_equal(actual, sn)
+        actual = s2 - pd.NaT
+        assert_series_equal(actual, sn)
 
-        # THIS RAISES!
-        # actual = s1 + df1
+        actual = s1 + df1
 
         actual = df1 + df1
         assert_frame_equal(actual, df2)
@@ -287,7 +283,7 @@ class TestTimedeltas(unittest.TestCase):
         assert_frame_equal(actual, dfn)
 
         # This passes, though its Series analogue does not.
-        actual = df1 + pd.NaT 
+        actual = df1 + pd.NaT
         assert_frame_equal(actual, dfn)
         actual = df1 - pd.NaT
         assert_frame_equal(actual, dfn)

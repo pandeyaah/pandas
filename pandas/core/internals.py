@@ -1162,7 +1162,7 @@ class TimeDeltaBlock(IntBlock):
 
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments
-            we are going to compare vs i8, so coerce to floats 
+            we are going to compare vs i8, so coerce to floats
             repring NaT with np.nan so nans propagate
             values is always ndarray like, other may not be """
         def masker(v):
@@ -1180,7 +1180,7 @@ class TimeDeltaBlock(IntBlock):
             if other == tslib.iNaT:
                 other = np.nan
         else:
-            other = masker(v)
+            other = masker(other)
 
         return values, other
 
