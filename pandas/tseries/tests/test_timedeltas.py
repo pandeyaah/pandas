@@ -195,6 +195,25 @@ class TestTimedeltas(unittest.TestCase):
         expected = to_timedelta('00:00:08')
         tm.assert_almost_equal(result, expected)
 
+    def test_timedelta_missing_values(self):
+        _skip_if_numpy_not_friendly()
+
+        # GH5438
+        timedelta_NaT = np.timedelta64('NaT')
+
+        actual = pd.to_timedelta(Series(['00:00:01', np.nan]))
+        expected = Series([np.timedelta64(1000000000, 'ns'), timedelta_NaT], dtype='<m8[ns]')
+        assert_series_equal(actual, expected)
+
+        actual = pd.to_timedelta(Series(['00:00:01', pd.NaT]))
+        assert_series_equal(actual, expected)
+
+        actual = pd.to_timedelta(np.nan)
+        self.assert_(actual == timedelta_NaT)
+
+        actual = pd.to_timedelta(pd.NaT)
+        self.assert_(actual == timedelta_NaT)
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
