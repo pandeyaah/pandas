@@ -195,6 +195,104 @@ class TestTimedeltas(unittest.TestCase):
         expected = to_timedelta('00:00:08')
         tm.assert_almost_equal(result, expected)
 
+    def test_to_timedelta_on_missing_values(self):
+        _skip_if_numpy_not_friendly()
+
+        # GH5438
+        timedelta_NaT = np.timedelta64('NaT')
+
+        actual = pd.to_timedelta(Series(['00:00:01', np.nan]))
+        expected = Series([np.timedelta64(1000000000, 'ns'), timedelta_NaT], dtype='<m8[ns]')
+        assert_series_equal(actual, expected)
+
+        actual = pd.to_timedelta(Series(['00:00:01', pd.NaT]))
+        assert_series_equal(actual, expected)
+
+        actual = pd.to_timedelta(np.nan)
+        self.assert_(actual == timedelta_NaT)
+
+        actual = pd.to_timedelta(pd.NaT)
+        self.assert_(actual == timedelta_NaT)
+
+    def test_timedelta_ops_with_missing_values(self):
+        _skip_if_numpy_not_friendly()
+
+        # setup
+        s1 = pd.to_timedelta(Series(['00:00:01']))
+        s2 = pd.to_timedelta(Series(['00:00:02']))
+        sn = pd.to_timedelta(Series([pd.NaT]))
+        df1 = DataFrame(['00:00:01']).apply(pd.to_timedelta)
+        df2 = DataFrame(['00:00:02']).apply(pd.to_timedelta)
+        dfn = DataFrame([pd.NaT]).apply(pd.to_timedelta)
+        scalar1 = pd.to_timedelta('00:00:01')
+        scalar2 = pd.to_timedelta('00:00:02')
+        timedelta_NaT = pd.to_timedelta('NaT')
+        NA = np.nan
+
+        actual = scalar1 + scalar1
+        self.assert_(actual == scalar2)
+        actual = scalar2 - scalar1
+        self.assert_(actual == scalar1)
+
+        actual = s1 + s1
+        assert_series_equal(actual, s2)
+        actual = s2 - s1
+        assert_series_equal(actual, s1)
+
+        actual = s1 + scalar1
+        assert_series_equal(actual, s2)
+        actual = s2 - scalar1
+        assert_series_equal(actual, s1)
+
+        actual = s1 + timedelta_NaT
+        assert_series_equal(actual, sn)
+        actual = s1 - timedelta_NaT
+        assert_series_equal(actual, sn)
+
+        # TODO: This should really pass.
+        # actual = s1 + NA
+        # assert_series_equal(actual, sn)
+        # actual = s1 - NA
+        # assert_series_equal(actual, sn)
+
+        # NOTE: This fails on datatype grounds.
+        # The analogue for frames, below, passes.
+        # actual = s1 + pd.NaT  # NaT is datetime, not timedelta
+        # assert_series_equal(actual, sn)
+        # actual = s2 - pd.NaT
+        # assert_series_equal(actual, sn)
+
+        # THIS RAISES!
+        # actual = s1 + df1
+
+        actual = df1 + df1
+        assert_frame_equal(actual, df2)
+        actual = df2 - df1
+        assert_frame_equal(actual, df1)
+
+        actual = df1 + scalar1
+        assert_frame_equal(actual, df2)
+        actual = df2 - scalar1
+        assert_frame_equal(actual, df1)
+
+        actual = df1 + timedelta_NaT
+        assert_frame_equal(actual, dfn)
+        actual = df1 - timedelta_NaT
+        assert_frame_equal(actual, dfn)
+
+        # This passes, though its Series analogue does not.
+        actual = df1 + NA
+        assert_frame_equal(actual, dfn)
+        actual = df1 - NA
+        assert_frame_equal(actual, dfn)
+
+        # This passes, though its Series analogue does not.
+        actual = df1 + pd.NaT 
+        assert_frame_equal(actual, dfn)
+        actual = df1 - pd.NaT
+        assert_frame_equal(actual, dfn)
+
+
 if __name__ == '__main__':
     nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
                    exit=False)
