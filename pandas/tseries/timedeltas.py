@@ -6,11 +6,10 @@ import re
 from datetime import timedelta
 
 import numpy as np
-import pandas as pd
 import pandas.tslib as tslib
 from pandas import compat, _np_version_under1p7
 from pandas.core.common import (ABCSeries, is_integer, is_timedelta64_dtype,
-                                _values_from_object, is_list_like)
+                                _values_from_object, is_list_like, isnull)
 
 repr_timedelta = tslib.repr_timedelta64
 repr_timedelta64 = tslib.repr_timedelta64
@@ -85,7 +84,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns'):
         r = conv(r)
     elif r == tslib.iNaT:
         return r
-    elif pd.isnull(r):
+    elif isnull(r):
         return np.timedelta64('NaT')
     elif isinstance(r, np.timedelta64):
         r = r.astype("m8[{0}]".format(unit.lower()))
