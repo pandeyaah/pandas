@@ -43,6 +43,7 @@ from pandas.stats.api import *
 from pandas.tseries.api import *
 from pandas.io.api import *
 from pandas.computation.api import *
+from pandas.parallel.api import *
 
 from pandas.tools.describe import value_range
 from pandas.tools.merge import merge, concat, ordered_merge
