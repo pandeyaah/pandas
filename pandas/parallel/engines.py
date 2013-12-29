@@ -1,15 +1,25 @@
 """ Engine classes for parallel support """
 
 import abc
+import numpy as np
 from pandas.core import config
 
 try:
     import joblib
+    from joblib import Parallel, delayed
     _JOBLIB_INSTALLED = True
 except:
     _JOBLIB_INSTALLED = False
 
 class ParallelException(ValueError): pass
+
+# use module level variables to set the function object
+# works even if its an anonymous function
+_target_function_ref = None
+
+def _target_function(x):
+    global _target_function_ref
+    return _target_function_ref(x)
 
 def create_parallel_engine(name=None, **kwargs):
     """
@@ -42,9 +52,13 @@ class ParallelEngine(object):
     """Object serving as a base class for all engines."""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, force=False, max_cpu=None, **kwargs):
+    def __init__(self, force=False, max_cpu=None, verbose=0, **kwargs):
         self.force = force
+
+        if max_cpu is None:
+            max_cpu = -1
         self.max_cpu = max_cpu
+        self.verbose = verbose
         self.is_installed = self.install()
 
     def install(self):
@@ -52,7 +66,17 @@ class ParallelEngine(object):
 
     def can_evaluate(self, obj):
         """ return True if we can evaluate the object """
+        return False
+
+class PythonEngine(ParallelEngine):
+    """ the python engine - use a single proc """
+
+    def install(self):
         return True
+
+    def can_evaluate(self, obj):
+        """ we never evaluate """
+        return False
 
 class JoblibEngine(ParallelEngine):
     """ joblib engine class """
@@ -60,9 +84,35 @@ class JoblibEngine(ParallelEngine):
     def install(self):
         return _JOBLIB_INSTALLED
 
+    def can_evaluate(self, obj):
+        """ we never evaluate """
+        return self.force or np.prod(obj.shape) > 20000
+
+    def apply_frame(self,obj,func,axis):
+        """ parallel apply for data frame """
+
+        if axis == 0:
+            gen = (obj.icol(i) for i in range(len(obj.columns)))
+        elif axis == 1:
+            values = obj.values
+            gen = (Series.from_array(arr, index=obj.columns, name=name)
+                   for i, (arr, name) in
+                   enumerate(zip(values, obj.index)))
+        else:  # pragma : no cover
+            raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
+
+        # set the function to a module level reference in order to be useable by the targets
+        global _target_function_ref
+        _target_function_ref = func
+        p = Parallel(n_jobs=self.max_cpu,verbose=self.verbose,max_nbytes=None)
+
+        # this returns a list of the results
+        results = p(delayed(_target_function)(v) for i, v in enumerate(gen))
+
+        return dict([ (i,r) for i,r in enumerate(results) ])
 #### engines & options ####
 
-_engines = { 'joblib' : JoblibEngine }
+_engines = { 'joblib' : JoblibEngine, 'python' : PythonEngine }
 
 default_engine_doc = """
 : string/None

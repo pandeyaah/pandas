@@ -23,15 +23,10 @@ from pandas.compat import PY3, u
 from pandas.parallel import engines as pp
 
 class Base(tm.TestCase):
-
-    @classmethod
-    def tearDownClass(cls):
-        super(Base, cls).tearDownClass()
-        if getattr(cls,'engine',None):
-            del cls.engine
+    engine = None
 
     def setUp(self):
-        pass
+        self.frame = DataFrame(np.random.rand(100,10))
 
     def tearDown(self):
         pass
@@ -39,7 +34,7 @@ class Base(tm.TestCase):
     def test_create_engine(self):
 
         # pass default or None
-        name = getattr(self,'engine',None)
+        name = self.engine
         engine = pd.create_parallel_engine(name=name)
         self.assert_(engine is not (name is not None))
 
@@ -50,6 +45,36 @@ class Base(tm.TestCase):
 
             # invalid
             self.assertRaises(pp.ParallelException, lambda : pd.create_parallel_engine(name='foo'))
+
+    def test_apply(self):
+
+        # base case
+        expected = self.frame.apply(np.sqrt, engine=pd.create_parallel_engine(name='python'))
+
+        # since these are ufuncs, no effect here
+        for proc in [1,2,4,None]:
+            result = self.frame.apply(np.sqrt, engine=pd.create_parallel_engine(name=self.engine,max_proc=proc))
+            assert_frame_equal(result,expected)
+
+        # real func
+        def f(x):
+            return np.sqrt(x)
+
+        for proc in [1,2,4,None]:
+
+            # too small to execute
+            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=False,max_proc=proc))
+            assert_frame_equal(result,expected)
+
+            # parallel execution
+            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=True,max_proc=proc))
+            assert_frame_equal(result,expected)
+
+            # anonymous function
+            result = self.frame.apply(lambda x: np.sqrt(x),
+                                      engine=pd.create_parallel_engine(name=self.engine,force=True,max_proc=proc))
+            assert_frame_equal(result,expected)
+
 
 class TestJoblib(Base):
 

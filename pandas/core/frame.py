@@ -37,6 +37,7 @@ from pandas.core.series import Series
 import pandas.computation.expressions as expressions
 from pandas.computation.eval import eval as _eval
 from pandas.computation.scope import _ensure_scope
+from pandas.parallel.engines import create_parallel_engine
 from pandas.compat.scipy import scoreatpercentile as _quantile
 from pandas.compat import(range, zip, lrange, lmap, lzip, StringIO, u,
                           OrderedDict, raise_with_traceback)
@@ -3242,8 +3243,8 @@ class DataFrame(NDFrame):
     #----------------------------------------------------------------------
     # Function application
 
-    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
-              args=(), **kwds):
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=True,
+              engine=None, args=(), **kwds):
         """
         Applies function along input axis of DataFrame.
 
@@ -3275,6 +3276,7 @@ class DataFrame(NDFrame):
             passed function will receive ndarray objects instead. If you are
             just applying a NumPy reduction function this will achieve much
             better performance
+        engine : a pandas parallel engine, default to 'parallel.default_engine'
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
@@ -3315,9 +3317,7 @@ class DataFrame(NDFrame):
                 if raw and not self._is_mixed_type:
                     return self._apply_raw(f, axis)
                 else:
-                    if reduce is None:
-                        reduce = True
-                    return self._apply_standard(f, axis, reduce=reduce)
+                    return self._apply_standard(f, axis, reduce=reduce, engine=engine)
             else:
                 return self._apply_broadcast(f, axis)
 
@@ -3347,7 +3347,7 @@ class DataFrame(NDFrame):
         else:
             return Series(result, index=self._get_agg_axis(axis))
 
-    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
+    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True, engine=None):
 
         # skip if we are mixed datelike and trying reduce across axes
         # GH6125
@@ -3373,49 +3373,60 @@ class DataFrame(NDFrame):
             except Exception:
                 pass
 
+        # try to use a parallel engine
+        if engine is None:
+            engine = create_parallel_engine()
+
+        results = None
+        if ignore_failures is False and engine is not None and engine.can_evaluate(self):
+            results = engine.apply_frame(self,func=func,axis=axis)
+
         if axis == 0:
-            series_gen = (self.icol(i) for i in range(len(self.columns)))
             res_index = self.columns
             res_columns = self.index
         elif axis == 1:
             res_index = self.index
             res_columns = self.columns
-            values = self.values
-            series_gen = (Series.from_array(arr, index=res_columns, name=name)
-                          for i, (arr, name) in
-                          enumerate(zip(values, res_index)))
-        else:  # pragma : no cover
-            raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
 
-        i = None
-        keys = []
-        results = {}
-        if ignore_failures:
-            successes = []
-            for i, v in enumerate(series_gen):
-                try:
-                    results[i] = func(v)
-                    keys.append(v.name)
-                    successes.append(i)
-                except Exception:
-                    pass
-            # so will work with MultiIndex
-            if len(successes) < len(res_index):
-                res_index = res_index.take(successes)
-        else:
-            try:
+        # reg apply
+        if results is None:
+            results = {}
+            if axis == 0:
+                series_gen = (self.icol(i) for i in range(len(self.columns)))
+            elif axis == 1:
+                values = self.values
+                series_gen = (Series.from_array(arr, index=res_columns, name=name)
+                              for i, (arr, name) in
+                              enumerate(zip(values, res_index)))
+            else:  # pragma : no cover
+                raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
+
+            i = None
+            if ignore_failures:
+                successes = []
                 for i, v in enumerate(series_gen):
-                    results[i] = func(v)
-                    keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, 'args'):
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        e.args = e.args + ('occurred at index %s' %
-                                           com.pprint_thing(k),)
-                raise
+                    try:
+                        results[i] = func(v)
+                        successes.append(i)
+                    except Exception:
+                        pass
+                # so will work with MultiIndex
+                if len(successes) < len(res_index):
+                    res_index = res_index.take(successes)
+            else:
+                try:
+                    for i, v in enumerate(series_gen):
+                        results[i] = func(v)
+                except Exception as e:
+                    if hasattr(e, 'args'):
+                        # make sure i is defined
+                        if i is not None:
+                            k = res_index[i]
+                            e.args = e.args + ('occurred at index %s' %
+                                               com.pprint_thing(k),)
+                    raise
 
+        # return the results
         if len(results) > 0 and _is_sequence(results[0]):
             if not isinstance(results[0], Series):
                 index = res_columns
