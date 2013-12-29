@@ -53,7 +53,7 @@ class Base(tm.TestCase):
 
         # since these are ufuncs, no effect here
         for proc in [1,2,4,None]:
-            result = self.frame.apply(np.sqrt, engine=pd.create_parallel_engine(name=self.engine,max_proc=proc))
+            result = self.frame.apply(np.sqrt, engine=pd.create_parallel_engine(name=self.engine,max_cpu=proc))
             assert_frame_equal(result,expected)
 
         # real func
@@ -63,16 +63,16 @@ class Base(tm.TestCase):
         for proc in [1,2,4,None]:
 
             # too small to execute
-            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=False,max_proc=proc))
+            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=False,max_cpu=proc))
             assert_frame_equal(result,expected)
 
             # parallel execution
-            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=True,max_proc=proc))
+            result = self.frame.apply(f, engine=pd.create_parallel_engine(name=self.engine,force=True,max_cpu=proc))
             assert_frame_equal(result,expected)
 
             # anonymous function
             result = self.frame.apply(lambda x: np.sqrt(x),
-                                      engine=pd.create_parallel_engine(name=self.engine,force=True,max_proc=proc))
+                                      engine=pd.create_parallel_engine(name=self.engine,force=True,max_cpu=proc))
             assert_frame_equal(result,expected)
 
 

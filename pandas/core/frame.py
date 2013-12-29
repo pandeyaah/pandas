@@ -3374,8 +3374,7 @@ class DataFrame(NDFrame):
                 pass
 
         # try to use a parallel engine
-        if engine is None:
-            engine = create_parallel_engine()
+        engine = create_parallel_engine(name=engine)
 
         results = None
         if ignore_failures is False and engine is not None and engine.can_evaluate(self):

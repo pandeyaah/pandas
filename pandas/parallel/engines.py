@@ -91,25 +91,47 @@ class JoblibEngine(ParallelEngine):
     def apply_frame(self,obj,func,axis):
         """ parallel apply for data frame """
 
+        # split according to each cpu
+        n_jobs = self.max_cpu
+        if n_jobs < 0:
+            n_jobs += joblib.cpu_count() + 1
+
         if axis == 0:
-            gen = (obj.icol(i) for i in range(len(obj.columns)))
+            l = len(obj.columns)
+            perc = (len(obj.columns) // n_jobs) + 1
+            gen = (obj.iloc[:,(i*perc):min(((i+1)*perc),l)] for i in range(n_jobs) if i*perc < l)
+
+            def f(x):
+                return [ func(x.icol(i)) for i in range(len(x.columns)) ]
+
         elif axis == 1:
             values = obj.values
             gen = (Series.from_array(arr, index=obj.columns, name=name)
                    for i, (arr, name) in
                    enumerate(zip(values, obj.index)))
+
+            f = func
+
         else:  # pragma : no cover
             raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
 
         # set the function to a module level reference in order to be useable by the targets
         global _target_function_ref
-        _target_function_ref = func
+        _target_function_ref = f
         p = Parallel(n_jobs=self.max_cpu,verbose=self.verbose,max_nbytes=None)
 
-        # this returns a list of the results
+        # this returns a list of a list of the results
         results = p(delayed(_target_function)(v) for i, v in enumerate(gen))
 
-        return dict([ (i,r) for i,r in enumerate(results) ])
+        count = 0
+        d = dict()
+        for r in results:
+            for sr in r:
+                d[count] = sr
+                count += 1
+
+        return d
+
 #### engines & options ####
 
 _engines = { 'joblib' : JoblibEngine, 'python' : PythonEngine }
@@ -121,7 +143,7 @@ default_engine_doc = """
 
 with config.config_prefix('parallel'):
     config.register_option(
-        'default_engine', 'joblib', default_engine_doc,
-        validator=config.is_one_of_factory(_engines.keys() + [ None])
+        'default_engine', None, default_engine_doc,
+        validator=config.is_one_of_factory(list(_engines.keys()) + [ None])
     )
 
