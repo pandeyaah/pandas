@@ -58,6 +58,9 @@ API Changes
 
   - ``Series.sort`` will raise a ``ValueError`` (rather than a ``TypeError``) on sorting an
     object that is a view of another (:issue:`5856`, :issue:`5853`)
+  - provide option ``io.pickle.compat`` to control patching of the global ``pickle.load/s``
+    defaults TO patch the global module (in-other-words, allows ``pickle.load/s`` to work out
+    of the box to read in prior to 0.13 pickles)
 
 .. _release.bug_fixes-0.13.1:
 

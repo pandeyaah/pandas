@@ -10,7 +10,17 @@ from pandas.compat import u, string_types
 from pandas.core.series import Series, TimeSeries
 from pandas.sparse.series import SparseSeries, SparseTimeSeries
 
-
+# register our configuration options
+from pandas.core import config
+compat_doc = """
+: compatibility
+    'global' will patch the global pickle.load/s
+    'local' will use a local copy
+"""
+with config.config_prefix('io.pickle'):
+    config.register_option('compat', 'local', compat_doc,
+        validator=config.is_one_of_factory(['global','local'])
+                           )
 def load_reduce(self):
     stack = self.stack
     args = stack.pop()
@@ -54,7 +64,18 @@ else:
     class Unpickler(pkl.Unpickler):
         pass
 
-Unpickler.dispatch = copy.copy(Unpickler.dispatch)
+# respect the option
+from pandas.core import config
+
+if config.get_option('io.pickle.compat') == 'global':
+    # use the global copy
+    pass
+
+else:
+
+    # make a copy
+    Unpickler.dispatch = copy.copy(Unpickler.dispatch)
+
 Unpickler.dispatch[pkl.REDUCE[0]] = load_reduce
 
 
