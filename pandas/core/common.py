@@ -405,14 +405,14 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
             out = out.view(out_dtype)
         if fill_wrap is not None:
             fill_value = fill_wrap(fill_value)
-        f(arr, indexer, out, fill_value=fill_value)
+        f(arr, getattr(indexer,'values',indexer), out, fill_value=fill_value)
     return wrapper
 
 
 def _convert_wrapper(f, conv_dtype):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         arr = arr.astype(conv_dtype)
-        f(arr, indexer, out, fill_value=fill_value)
+        f(arr, getattr(indexer,'values',indexer), out, fill_value=fill_value)
     return wrapper
 
 
@@ -592,7 +592,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        _take_nd_generic(arr, indexer, out, axis=axis,
+        _take_nd_generic(arr, getattr(indexer,'values',indexer), out, axis=axis,
                          fill_value=fill_value, mask_info=mask_info)
     return func
 
@@ -672,7 +672,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
                                  axis=axis, mask_info=mask_info)
-    func(arr, indexer, out, fill_value)
+    func(arr, getattr(indexer,'values',indexer), out, fill_value)
     return out
 
 
@@ -739,9 +739,9 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
             func = _convert_wrapper(func, out.dtype)
     if func is None:
         def func(arr, indexer, out, fill_value=np.nan):
-            _take_2d_multi_generic(arr, indexer, out,
+            _take_2d_multi_generic(arr, getattr(indexer,'values',indexer), out,
                                    fill_value=fill_value, mask_info=mask_info)
-    func(arr, indexer, out=out, fill_value=fill_value)
+    func(arr, getattr(indexer,'values',indexer), out=out, fill_value=fill_value)
     return out
 
 

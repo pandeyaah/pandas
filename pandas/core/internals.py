@@ -3374,6 +3374,7 @@ class BlockManager(PandasObject):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 
+        self._consolidate_inplace()
         indexer = com._ensure_platform_int(indexer)
         n = len(self.axes[axis])
 
