@@ -174,3 +174,29 @@ df = DataFrame(dict( A = [ 'foo'] * 1000000))
 
 frame_iloc_big = Benchmark('df.iloc[:100,0]', setup,
                             start_date=datetime(2013, 1, 1))
+
+# non-contiguous iloc (taxes take_2d)
+setup = common_setup + """
+NUM_ROWS = 170000
+NUM_COLS = 1200
+col_names = ['COL'+num for num in map(str,np.arange(NUM_COLS).tolist())]
+data_cols = col_names[:20]
+time_cols = col_names[20:30]
+
+df = DataFrame(np.random.randint(1000, size=(NUM_ROWS,NUM_COLS)), dtype=np.float32, columns=col_names)
+
+for col in data_cols:
+    df[col] = df[col].astype(str) + 'ABC'
+
+for col in time_cols:
+    df[col] = pd.to_datetime(df[col])
+
+df = df.sort(columns='COL0').reset_index(drop=True)
+
+levels = np.random.choice(df.COL1.unique(), 100, replace=False)
+level_bool = df.COL1.isin(levels)
+level_index = df.COL1[level_bool].index
+"""
+
+frame_iloc_non_contig = Benchmark('df.iloc[level_index]', setup,
+                                   start_date=datetime(2013, 1, 1))
