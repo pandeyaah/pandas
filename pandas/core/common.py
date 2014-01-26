@@ -397,7 +397,7 @@ def _unpickle_array(bytes):
     return arr
 
 
-def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
+def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None, view=False):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         if arr_dtype is not None:
             arr = arr.view(arr_dtype)
@@ -405,14 +405,20 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
             out = out.view(out_dtype)
         if fill_wrap is not None:
             fill_value = fill_wrap(fill_value)
-        f(arr, indexer, out, fill_value=fill_value)
+        if view:
+            f(np.ascontiguousarray(arr), getattr(indexer,'values',indexer), out, fill_value=fill_value)
+        else:
+            f(arr, getattr(indexer,'values',indexer), out, fill_value=fill_value)
     return wrapper
 
 
-def _convert_wrapper(f, conv_dtype):
+def _convert_wrapper(f, conv_dtype, view=False):
     def wrapper(arr, indexer, out, fill_value=np.nan):
         arr = arr.astype(conv_dtype)
-        f(arr, indexer, out, fill_value=fill_value)
+        if view:
+            f(np.ascontiguousarray(arr), getattr(indexer,'values',indexer), out, fill_value=fill_value)
+        else:
+            f(arr, getattr(indexer,'values',indexer), out, fill_value=fill_value)
     return wrapper
 
 
@@ -529,12 +535,12 @@ _take_2d_axis1_dict = {
     ('float64', 'float64'): algos.take_2d_axis1_float64_float64,
     ('object', 'object'): algos.take_2d_axis1_object_object,
     ('bool', 'bool'):
-    _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8),
+    _view_wrapper(algos.take_2d_axis1_bool_bool, np.uint8, np.uint8, view=True),
     ('bool', 'object'):
-    _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None),
+    _view_wrapper(algos.take_2d_axis1_bool_object, np.uint8, None, view=True),
     ('datetime64[ns]', 'datetime64[ns]'):
     _view_wrapper(algos.take_2d_axis1_int64_int64, np.int64, np.int64,
-                  fill_wrap=np.int64)
+                  fill_wrap=np.int64, view=True)
 }
 
 
@@ -567,6 +573,8 @@ _take_2d_multi_dict = {
 
 
 def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
+    """ return the function and whether its a memory view function """
+    view = False
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -576,8 +584,9 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
                 func = _take_2d_axis0_dict.get(tup, None)
             else:
                 func = _take_2d_axis1_dict.get(tup, None)
+                view = True
         if func is not None:
-            return func
+            return func, view
 
         tup = (out_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -587,14 +596,15 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
                 func = _take_2d_axis0_dict.get(tup, None)
             else:
                 func = _take_2d_axis1_dict.get(tup, None)
+                view = True
         if func is not None:
-            func = _convert_wrapper(func, out_dtype)
-            return func
+            func = _convert_wrapper(func, out_dtype, view=view)
+            return func, view
 
     def func(arr, indexer, out, fill_value=np.nan):
-        _take_nd_generic(arr, indexer, out, axis=axis,
+        _take_nd_generic(np.ascontiguousarray(arr), getattr(indexer,'values',indexer), out, axis=axis,
                          fill_value=fill_value, mask_info=mask_info)
-    return func
+    return func, view
 
 
 def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
@@ -655,24 +665,27 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
                     # to crash when trying to cast it to dtype)
                     dtype, fill_value = arr.dtype, arr.dtype.type()
 
+    func, view = _get_take_nd_function(arr.ndim, arr.dtype, np.dtype(dtype),
+                                 axis=axis, mask_info=mask_info)
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     if out is None:
         out_shape = list(arr.shape)
         out_shape[axis] = len(indexer)
         out_shape = tuple(out_shape)
-        if arr.flags.f_contiguous and axis == arr.ndim - 1:
-            # minor tweak that can make an order-of-magnitude difference
-            # for dataframes initialized directly from 2-d ndarrays
-            # (s.t. df.values is c-contiguous and df._data.blocks[0] is its
-            # f-contiguous transpose)
+        if view:
             out = np.empty(out_shape, dtype=dtype, order='F')
         else:
-            out = np.empty(out_shape, dtype=dtype)
+            out = np.empty(out_shape, dtype=dtype, order='C')
 
-    func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype,
-                                 axis=axis, mask_info=mask_info)
-    func(arr, indexer, out, fill_value)
+    indexer = getattr(indexer,'values',indexer)
+    if view:
+        arr = np.ascontiguousarray(arr)
+
+    if np.prod(arr.shape):
+        func(arr, indexer, out, fill_value)
+    else:
+        out.fill(fill_value)
     return out
 
 
@@ -730,7 +743,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
     # and the fill_value
     if out is None:
         out_shape = len(row_idx), len(col_idx)
-        out = np.empty(out_shape, dtype=dtype)
+        out = np.empty(out_shape, dtype=dtype, order='F')
 
     func = _take_2d_multi_dict.get((arr.dtype.name, out.dtype.name), None)
     if func is None and arr.dtype != out.dtype:
@@ -741,7 +754,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan,
         def func(arr, indexer, out, fill_value=np.nan):
             _take_2d_multi_generic(arr, indexer, out,
                                    fill_value=fill_value, mask_info=mask_info)
-    func(arr, indexer, out=out, fill_value=fill_value)
+    func(arr, getattr(indexer,'values',indexer), out, fill_value)
     return out
 
 

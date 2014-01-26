@@ -3371,6 +3371,7 @@ class BlockManager(PandasObject):
         if axis < 1:
             raise AssertionError('axis must be at least 1, got %d' % axis)
 
+        self._consolidate_inplace()
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 
