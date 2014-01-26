@@ -661,7 +661,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan,
         out_shape = list(arr.shape)
         out_shape[axis] = len(indexer)
         out_shape = tuple(out_shape)
-        if arr.flags.f_contiguous and axis == arr.ndim - 1:
+        if arr.flags.f_contiguous and axis == arr.ndim - 1 or axis==1:
             # minor tweak that can make an order-of-magnitude difference
             # for dataframes initialized directly from 2-d ndarrays
             # (s.t. df.values is c-contiguous and df._data.blocks[0] is its
