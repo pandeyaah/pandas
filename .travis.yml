@@ -45,6 +45,12 @@ matrix:
       - FULL_DEPS=true
       - CLIPBOARD=xsel
       - JOB_NAME: "33_nslow"  # ScatterCI Build name, 20 chars max
+    - python: 3.4
+      env:
+      - NOSE_ARGS="not slow"
+      - FULL_DEPS=true
+      - CLIPBOARD=xsel
+      - JOB_NAME: "34_nslow"  # ScatterCI Build name, 20 chars max
 
 
 # allow importing from site-packages,
