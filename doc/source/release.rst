@@ -182,7 +182,7 @@ Bug Fixes
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
 - Perf issue in concatting with empty objects (:issue:`3259`)
-- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:isssue:`6444`)
+- Clarify sorting of ``sym_diff`` on ``Index``es with ``NaN``s (:issue:`6444`)
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
 - Bug in ``str.split`` when passed ``pat=None`` and ``n=1`` (:issue:`6466`)
@@ -200,6 +200,7 @@ Bug Fixes
 - Regression from 0.13 in the treatmenet of numpy ``datetime64`` non-ns dtypes in Series creation (:issue:`6529`)
 - ``.names`` attribute of MultiIndexes passed to ``set_index`` are now preserved (:issue:`6459`).
 - Bug in setitem with a duplicate index and an alignable rhs (:issue:`6541`)
+- Inconsistent types in Timestamp addition/subtraction (:issue:`6543`)
 
 pandas 0.13.1
 -------------
