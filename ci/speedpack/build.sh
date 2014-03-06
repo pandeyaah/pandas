@@ -1,8 +1,14 @@
 #!/bin/bash
 
-# This script is meant to run on a mint precise64 VM.
+# This script is meant to run on a 64-bit linux build locally
+# Install apt deps! make sure that all python versions are available
+# run in pandas/ci directory!
+
+# this creates wheels in /tmp/wheelhouse
+# upload these to pandas@pandas.pydata.org/www/pandas-build-dev/wheels
+
 # The generated wheel files should be compatible
-# with travis-ci as of 07/2013.
+# with travis-ci as of 03/2014.
 #
 # Runtime can be up to an hour or more.
 
@@ -12,16 +18,16 @@ echo "Building wheels..."
 set -x
 
 # install and update some basics
-apt-get update
-apt-get install python-software-properties git -y
-apt-add-repository ppa:fkrull/deadsnakes -y
-apt-get update
+#apt-get update
+#apt-get install python-software-properties git -y
+#apt-add-repository ppa:fkrull/deadsnakes -y
+#apt-get update
 
 # install some deps and virtualenv
-apt-get install python-pip libfreetype6-dev libpng12-dev libhdf5-serial-dev \
-    g++ libatlas-base-dev gfortran -y
-pip install virtualenv
-apt-get build-dep python-lxml -y
+#apt-get install python-pip libfreetype6-dev libpng12-dev libhdf5-serial-dev \
+#    g++ libatlas-base-dev gfortran -y
+#pip install virtualenv
+#apt-get build-dep python-lxml -y
 
 export PYTHONIOENCODING='utf-8'
 export VIRTUALENV_DISTRIBUTE=0
@@ -70,7 +76,7 @@ function generate_wheels() {
     local TAG=$(echo $reqfile |  grep -Po "(\d\.?[\d\-](_\w+)?)")
 
     # base dir for wheel dirs
-    local WHEELSTREET=/wheelhouse
+    local WHEELSTREET=/tmp/wheelhouse
     local WHEELHOUSE="$WHEELSTREET/$TAG"
 
     local PY_VER="${TAG:0:3}"
@@ -103,6 +109,6 @@ function generate_wheels() {
 }
 
 
-for reqfile in $(ls -1 /reqf/requirements-*.*); do
+for reqfile in $(ls -1 requirements-*.*); do
     generate_wheels "$reqfile"
 done
