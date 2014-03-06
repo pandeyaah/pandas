@@ -31,11 +31,14 @@ edit_init
 python_major_version="${TRAVIS_PYTHON_VERSION:0:1}"
 [ "$python_major_version" == "2" ] && python_major_version=""
 
-pip install -I -U setuptools
+pip install -I setuptools==2.2
 pip install wheel
 
 # comment this line to disable the fetching of wheel files
+#3/6/14, base_url changed: whl were not being transmitted correctly to travis for unknown reasons
 base_url=http://cache27diy-cpycloud.rhcloud.com
+#base_url=http://pandas.pydata.org/pandas-build/dev/wheels
+
 wheel_box=${TRAVIS_PYTHON_VERSION}${JOB_TAG}
 PIP_ARGS+=" -I --use-wheel --find-links=$base_url/$wheel_box/ --allow-external --allow-insecure"
 
