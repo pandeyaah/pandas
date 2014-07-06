@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing.decorators import slow
 from numpy.testing import assert_array_equal
 
-from pandas import Index, Series, DataFrame
+from pandas import Index, Series, DataFrame, _np_version_under1p7
 
 from pandas.tseries.index import date_range, bdate_range
 from pandas.tseries.offsets import DateOffset
@@ -128,6 +128,10 @@ class TestTSPlot(tm.TestCase):
 
     @slow
     def test_ts_plot_format_coord(self):
+        # not friendly for < 1.7
+        if _np_version_under1p7:
+            raise nose.SkipTest("numpy < 1.7")
+
         def check_format_of_first_point(ax, expected_string):
             first_line = ax.get_lines()[0]
             first_x = first_line.get_xdata()[0].ordinal
