@@ -220,13 +220,12 @@ class Categorical(PandasObject):
             inferred = com._possibly_infer_to_datetimelike(values)
             if not isinstance(inferred, np.ndarray):
                 from pandas.core.series import _sanitize_array
-                safe_dtype = None
-                if isinstance(values, list) and np.nan in values:
-                    # On list with NaNs, int values will be converted to float. Use "object" dtype
-                    # to prvent this. In the end objects will be casted to int/... in the level
-                    # assignment step.
-                    safe_dtype = "object"
-                values = _sanitize_array(values, None, dtype=safe_dtype)
+
+                # On list with NaNs, int values will be converted to float. Use "object" dtype
+                # to prvent this. In the end objects will be casted to int/... in the level
+                # assignment step.
+                dtype = object if com.isnull(values).any() else None
+                values = _sanitize_array(values, None, dtype=dtype)
 
         if levels is None:
             # object is needed to preserve ints in case we have np.nan in values
@@ -932,24 +931,20 @@ class Categorical(PandasObject):
                            ).groupby('codes').count()
 
         freqs = counts / float(counts.sum())
-
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
         result.columns = ['counts','freqs']
 
-        # Up to now we have codes -> fill in the levels
-        # object in case we need to handle NaNs
-        levels = np.asarray(self.levels, dtype=object)
-        # use arange to also include not used levels
-        index = np.arange(0, len(levels))
-        # handle nan
-        if -1 in result.index:
-            # take[...,-1] returns the last element. So put np.nan there...
-            levels = np.append(levels, np.nan)
-            # also sort the -1 to the last position in the index
-            index = np.append(index, -1)
-        result = result.reindex(index)
-        result.index = levels.take(result.index)
-        result.index.name = 'levels'
+        check = counts.index == -1
+        if check.any():
+            l = len(self.levels) if com.isnull(self.levels).any() else len(self.levels)+1
+            index = np.arange(0,l,dtype=object)
+            index[~check] = self.levels.take(counts.index[~check])
+            index[check] = np.nan
+            result.index = index
+        else:
+            result.index = self.levels.take(counts.index)
+            result = result.reindex(self.levels)
 
+        result.index.name = 'levels'
         return result

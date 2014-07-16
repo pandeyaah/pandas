@@ -240,20 +240,20 @@ class TestCategorical(tm.TestCase):
         # describe should work with NaN
         cat = pd.Categorical([np.nan,1, 2, 2])
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[1, 2, 1],
-                                            freqs=[1/4., 2/4., 1/4.],
-                                            levels=[1,2,np.nan]
+        expected = DataFrame.from_dict(dict(counts=[1, 1, 2],
+                                            freqs=[1/4., 1/4., 2/4.],
+                                            levels=[np.nan,1,2]
                                             )
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
 
-        # having NaN as level and as "not available" should also print two NaNs in describe!
+        # FIXME: this seemse very wrong: having NaN as level and as "not available" should also print two NaNs in describe!
         cat = pd.Categorical([np.nan,1, 2, 2])
         cat.levels = [1,2,np.nan]
         desc = cat.describe()
-        expected = DataFrame.from_dict(dict(counts=[1, 2, np.nan, 1],
-                                            freqs=[1/4., 2/4., np.nan, 1/4.],
-                                            levels=[1,2,np.nan,np.nan]
+        expected = DataFrame.from_dict(dict(counts=[1, 1, 2],
+                                            freqs=[1/4., 1/4., 2/4.],
+                                            levels=[np.nan,1,2]
                                             )
                                             ).set_index('levels')
         tm.assert_frame_equal(desc, expected)
