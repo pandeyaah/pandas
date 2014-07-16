@@ -931,12 +931,25 @@ class Categorical(PandasObject):
             'values' : self._codes }
                            ).groupby('codes').count()
 
-        counts.index = self.levels.take(counts.index)
-        counts = counts.reindex(self.levels)
         freqs = counts / float(counts.sum())
 
         from pandas.tools.merge import concat
         result = concat([counts,freqs],axis=1)
-        result.index.name = 'levels'
         result.columns = ['counts','freqs']
+
+        # Up to now we have codes -> fill in the levels
+        # object in case we need to handle NaNs
+        levels = np.asarray(self.levels, dtype=object)
+        # use arange to also include not used levels
+        index = np.arange(0, len(levels))
+        # handle nan
+        if -1 in result.index:
+            # take[...,-1] returns the last element. So put np.nan there...
+            levels = np.append(levels, np.nan)
+            # also sort the -1 to the last position in the index
+            index = np.append(index, -1)
+        result = result.reindex(index)
+        result.index = levels.take(result.index)
+        result.index.name = 'levels'
+
         return result
