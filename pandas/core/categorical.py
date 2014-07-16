@@ -220,9 +220,17 @@ class Categorical(PandasObject):
             inferred = com._possibly_infer_to_datetimelike(values)
             if not isinstance(inferred, np.ndarray):
                 from pandas.core.series import _sanitize_array
-                values = _sanitize_array(values, None)
+                safe_dtype = None
+                if isinstance(values, list) and np.nan in values:
+                    # On list with NaNs, int values will be converted to float. Use "object" dtype
+                    # to prvent this. In the end objects will be casted to int/... in the level
+                    # assignment step.
+                    safe_dtype = "object"
+                values = _sanitize_array(values, None, dtype=safe_dtype)
 
         if levels is None:
+            # object is needed to preserve ints in case we have np.nan in values
+            values = np.asarray(values, dtype="object")
             try:
                 codes, levels = factorize(values, sort=True)
                 # If the underlying data structure was sortable, and the user doesn't want to

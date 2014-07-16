@@ -111,6 +111,18 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([1,2,3,np.nan], levels=[1,2,3])
         self.assertTrue(com.is_integer_dtype(cat.levels))
 
+        # https://github.com/pydata/pandas/issues/3678
+        cat = pd.Categorical([np.nan,1, 2, 3])
+        self.assertTrue(com.is_integer_dtype(cat.levels))
+
+        # this should result in floats
+        cat = pd.Categorical([np.nan, 1, 2., 3 ])
+        self.assertTrue(com.is_float_dtype(cat.levels))
+
+        cat = pd.Categorical([np.nan, 1., 2., 3. ])
+        self.assertTrue(com.is_float_dtype(cat.levels))
+
+
     def test_from_codes(self):
 
         # too few levels
