@@ -18,16 +18,26 @@ from pandas.core import format as fmt
 
 def _cat_compare_op(op):
     def f(self, other):
-        if isinstance(other, (Categorical, np.ndarray)):
-            values = np.asarray(self)
+        if isinstance(other, Categorical):
+
+            # make levels equivalent
+            if not self.levels.equals(other.levels):
+                other = other.copy()
+                other.reorder_levels(self.levels)
+
+            # compare the codes
+            values = self.codes
             f = getattr(values, op)
-            return f(np.asarray(other))
-        else:
+            return f(other.codes)
+        elif np.isscalar(other):
             if other in self.levels:
                 i = self.levels.get_loc(other)
-                return getattr(self._codes, op)(i)
+                return getattr(self.codes, op)(i)
             else:
                 return np.repeat(False, len(self))
+        else:
+            raise TypeError("cannot compare a Categorical for op {op} with type {typ}".format(op=op,
+                                                                                              typ=type(other)))
 
     f.__name__ = op
 

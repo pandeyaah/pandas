@@ -722,6 +722,32 @@ class TestCategoricalAsBlock(tm.TestCase):
         with tm.assert_produces_warning(False):
             df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
 
+    def test_boolean_comparisons(self):
+
+        cat = pd.Series(pd.Categorical(["a","b","c"], levels=["c","b","a"]))
+        cat2 = pd.Series(pd.Categorical(["b","b","b"], levels=["c","b","a"]))
+        cat3 = pd.Series(pd.Categorical(["a","b","c"]))
+        cat4 = pd.Series(pd.Categorical(["b","b","b"]))
+
+        result = cat3 > cat4
+        expected = Series([False,False,True])
+        tm.assert_series_equal(result, expected)
+
+        result = cat > cat2
+        expected = Series([True, False, False])
+        tm.assert_series_equal(result, expected)
+
+        # invalid rhs types
+        self.assertRaises(TypeError, lambda : cat3 > np.array(cat4))
+
+        # This should raise?
+        #In[59]: cat > cat3
+        #Out[58]:
+        #    0    False
+        #    1    False
+        #    2    False
+        #    dtype: bool
+
     def test_assignment_to_dataframe(self):
         # assignment
         df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),dtype='int32')})
