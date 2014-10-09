@@ -224,6 +224,26 @@ class TestResample(tm.TestCase):
         expected = DataFrame({'value' : [16,3]},index=date_range('2014-11-08',freq='17s',periods=2))
         assert_frame_equal(result,expected)
 
+    def test_resample_rounding2(self):
+
+        # GH 8521
+        # odd results for snapping
+        start = datetime(2014, 9, 1, 9, 30)
+        end = datetime(2014, 9, 1, 10, 00)
+        tt = date_range(start, end, freq='1Min')
+        df = DataFrame(np.arange(len(tt)), index=tt, columns=['A'])
+
+        for freq in [3, 5, 6, 8, 16]:
+            f = "%dMin" % freq
+
+            import pdb; pdb.set_trace()
+            result = df.resample(f, how='first').head(2)
+            #self.assertEqual(result.index[0],start)
+            #self.assertEqual(result.index[-1],start + pd.Timedelta(f))
+
+            import pdb; pdb.set_trace()
+            result = df.resample(f, how='first', base=30).head(2)
+
     def test_resample_basic_from_daily(self):
         # from daily
         dti = DatetimeIndex(

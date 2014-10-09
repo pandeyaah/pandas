@@ -411,6 +411,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
 def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     from pandas.tseries.tools import normalize_date
 
+    #import pdb; pdb.set_trace()
     start_day_nanos = Timestamp(normalize_date(first)).value
     last_day_nanos = Timestamp(normalize_date(last)).value
 

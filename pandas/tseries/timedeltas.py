@@ -134,7 +134,7 @@ abbrevs = [('d' ,'days|d|day'),
            ('ns','nanoseconds|nano|nanos|nanosecond|ns')]
 
 _full_search2 = re.compile(''.join(
-    ["^\s*(?P<neg>-?)\s*"] + [ "(?P<" + p + ">\\d+\.?\d*\s*(" + ss + "))?\\s*" for p, ss in abbrevs ] + ['$']))
+    ["^\s*(?P<neg>-?)\s*"] + [ "(?P<" + p + ">\\d+\.?\d*\s*(" + ss + "))?\\s*" for p, ss in abbrevs ] + ['$']),re.IGNORECASE)
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, coerce=False):
     """ convert strings to timedelta; coerce to Timedelta (if box), else np.timedelta64"""
