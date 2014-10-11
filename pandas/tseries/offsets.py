@@ -39,9 +39,17 @@ def as_datetime(obj):
         obj = f()
     return obj
 
+_offset_cache = {}
+
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
+
+        # try for a cache hit
+        ckey = tuple([hash(self),hash(other)])
+        if ckey in _offset_cache:
+            return _offset_cache[ckey]
+
         if other is tslib.NaT:
             return tslib.NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
@@ -84,6 +92,7 @@ def apply_wraps(func):
             if tz is not None and result.tzinfo is None:
                 result = tslib._localize_pydatetime(result, tz)
 
+        _offset_cache[ckey] = result
         return result
     return wrapper
 
@@ -93,6 +102,7 @@ def _is_normalized(dt):
         or dt.microsecond != 0 or getattr(dt, 'nanosecond', 0) != 0):
         return False
     return True
+_exclude_params = set(['kwds','name','normalize','calendar','_offset','_use_relativedelta'])
 
 #----------------------------------------------------------------------
 # DateOffset
@@ -225,14 +235,11 @@ class DateOffset(object):
         return self.isAnchored() and self._cacheable
 
     def _params(self):
-        all_paras = dict(list(vars(self).items()) + list(self.kwds.items()))
-        if 'holidays' in all_paras and not all_paras['holidays']:
-            all_paras.pop('holidays')
-        exclude = ['kwds', 'name','normalize', 'calendar']
-        attrs = [(k, v) for k, v in all_paras.items() if (k not in exclude ) and (k[0] != '_')]
-        attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
-        return params
+        d = dict([ (k,v) for k, v in (self.__dict__.items() + self.kwds.items()) if k not in _exclude_params ])
+        if 'holidays' in d and not d['holidays']:
+            d.pop('holidays')
+        attrs = sorted(list(d.items()))
+        return tuple([str(self.__class__)] + attrs)
 
     def __repr__(self):
         if hasattr(self, '_named'):
