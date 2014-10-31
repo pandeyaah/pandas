@@ -935,7 +935,7 @@ class TestTimeSeries(tm.TestCase):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
         fields = ['year', 'quarter', 'month', 'day', 'hour',
-                  'minute', 'second', 'microsecond', 'nanosecond',
+                  'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
                   'week', 'dayofyear']
         for field in fields:
             result = getattr(idx, field)
@@ -945,7 +945,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_nat_scalar_field_access(self):
         fields = ['year', 'quarter', 'month', 'day', 'hour',
-                  'minute', 'second', 'microsecond', 'nanosecond',
+                  'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
                   'week', 'dayofyear']
         for field in fields:
             result = getattr(NaT, field)
@@ -2779,6 +2779,7 @@ class TestDatetime64(tm.TestCase):
     def test_datetimeindex_accessors(self):
         dti = DatetimeIndex(
             freq='D', start=datetime(1998, 1, 1), periods=365)
+        dti2 = dti + pd.Timedelta('1.5ms')
 
         self.assertEqual(dti.year[0], 1998)
         self.assertEqual(dti.month[0], 1)
@@ -2788,6 +2789,10 @@ class TestDatetime64(tm.TestCase):
         self.assertEqual(dti.second[0], 0)
         self.assertEqual(dti.microsecond[0], 0)
         self.assertEqual(dti.dayofweek[0], 3)
+
+        self.assertEqual(dti2.millisecond[0], 1)
+        self.assertEqual(dti2.microsecond[0], 500)
+        self.assertEqual(dti2.nanosecond[0], 0)
 
         self.assertEqual(dti.dayofyear[0], 1)
         self.assertEqual(dti.dayofyear[120], 121)
@@ -3309,11 +3314,19 @@ class TestTimestamp(tm.TestCase):
         stamp = Timestamp(val.view('i8') + 500)
         self.assertEqual(stamp.year, 2000)
         self.assertEqual(stamp.month, 1)
+        self.assertEqual(stamp.millisecond, 0)
         self.assertEqual(stamp.microsecond, 0)
         self.assertEqual(stamp.nanosecond, 500)
 
+        stamp = Timestamp(val.view('i8')) + pd.Timedelta('5ms 3us 2ns')
+        self.assertEqual(stamp.year, 2000)
+        self.assertEqual(stamp.month, 1)
+        self.assertEqual(stamp.millisecond, 5)
+        self.assertEqual(stamp.microsecond, 3)
+        self.assertEqual(stamp.nanosecond, 2)
+
     def test_unit(self):
-        def check(val,unit=None,h=1,s=1,us=0):
+        def check(val,unit=None,h=1,s=1,ms=0,us=0):
             stamp = Timestamp(val, unit=unit)
             self.assertEqual(stamp.year, 2000)
             self.assertEqual(stamp.month, 1)
@@ -3322,10 +3335,12 @@ class TestTimestamp(tm.TestCase):
             if unit != 'D':
                 self.assertEqual(stamp.minute, 1)
                 self.assertEqual(stamp.second, s)
+                self.assertEqual(stamp.millisecond, ms)
                 self.assertEqual(stamp.microsecond, us)
             else:
                 self.assertEqual(stamp.minute, 0)
                 self.assertEqual(stamp.second, 0)
+                self.assertEqual(stamp.millisecond, 0)
                 self.assertEqual(stamp.microsecond, 0)
             self.assertEqual(stamp.nanosecond, 0)
 
@@ -3353,14 +3368,14 @@ class TestTimestamp(tm.TestCase):
 
         # ok
         check((val+500000)/long(1000),unit='us',us=500)
-        check((val+500000000)/long(1000000),unit='ms',us=500000)
+        check((val+500000000)/long(1000000),unit='ms',ms=500)
 
         # floats
         check(val/1000.0 + 5,unit='us',us=5)
-        check(val/1000.0 + 5000,unit='us',us=5000)
+        check(val/1000.0 + 5000,unit='us',ms=5)
         check(val/1000000.0 + 0.5,unit='ms',us=500)
         check(val/1000000.0 + 0.005,unit='ms',us=5)
-        check(val/1000000000.0 + 0.5,unit='s',us=500000)
+        check(val/1000000000.0 + 0.5,unit='s',ms=500)
         check(days + 0.5,unit='D',h=12)
 
         # nan
@@ -3384,24 +3399,29 @@ class TestTimestamp(tm.TestCase):
 
         result = Timestamp(base.value + pd.Timedelta('5ms').value)
         self.assertEqual(result,Timestamp(str(base) + ".005000"))
-        self.assertEqual(result.microsecond,5000)
+        self.assertEqual(result.microsecond,0)
+        self.assertEqual(result.millisecond,5)
 
         result = Timestamp(base.value + pd.Timedelta('5us').value)
         self.assertEqual(result,Timestamp(str(base) + ".000005"))
         self.assertEqual(result.microsecond,5)
+        self.assertEqual(result.millisecond,0)
 
         result = Timestamp(base.value + pd.Timedelta('5ns').value)
         self.assertEqual(result,Timestamp(str(base) + ".000000005"))
         self.assertEqual(result.nanosecond,5)
         self.assertEqual(result.microsecond,0)
+        self.assertEqual(result.millisecond,0)
 
         result = Timestamp(base.value + pd.Timedelta('6ms 5us').value)
         self.assertEqual(result,Timestamp(str(base) + ".006005"))
-        self.assertEqual(result.microsecond,5+6*1000)
+        self.assertEqual(result.microsecond,5)
+        self.assertEqual(result.millisecond,6)
 
         result = Timestamp(base.value + pd.Timedelta('200ms 5us').value)
         self.assertEqual(result,Timestamp(str(base) + ".200005"))
-        self.assertEqual(result.microsecond,5+200*1000)
+        self.assertEqual(result.microsecond,5)
+        self.assertEqual(result.millisecond,200)
 
     def test_comparison(self):
         # 5-18-2012 00:00:00.000

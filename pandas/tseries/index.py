@@ -187,7 +187,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index):
     _attributes = ['name','freq','tz']
     _datetimelike_ops = ['year','month','day','hour','minute','second',
                          'weekofyear','week','dayofweek','weekday','dayofyear','quarter',
-                         'date','time','microsecond','nanosecond','is_month_start','is_month_end',
+                         'date','time','microsecond','millisecond','nanosecond','is_month_start','is_month_end',
                          'is_quarter_start','is_quarter_end','is_year_start','is_year_end','tz','freq']
     _is_numeric_dtype = False
 

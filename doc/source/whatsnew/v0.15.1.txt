@@ -148,6 +148,17 @@ API changes
 
      s.dt.hour
 
+.. warning::
+
+   The ``.millisecond`` accessor on a ``Timestamp/DatetimeIndex`` raised in prior versions (:issue:`8689`). Furthermore the ``.microsecond`` accessor will return the actual number of microseconds not including the ``.milliseconds``. This was inconsistent with all the other ``Timestamp`` accessors (which return the place value).
+
+   .. ipythnon:: python
+
+      t = Timestamp('2013-01-01 00:00:01.123456')
+      t.second
+      t.millisecond
+      t.microsecond
+
 .. _whatsnew_0151.enhancements:
 
 Enhancements

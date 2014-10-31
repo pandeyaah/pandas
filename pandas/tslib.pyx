@@ -289,9 +289,11 @@ class Timestamp(_Timestamp):
         result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
 
         if self.nanosecond != 0:
-            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
+            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond + 1000 * 1000 * self.millisecond)
         elif self.microsecond != 0:
-            result += '.%.6d' % self.microsecond
+            result += '.%.6d' % (self.microsecond + 1000 * self.millisecond)
+        elif self.millisecond != 0:
+            result += '.%.6d' % self.millisecond
 
         return result
 
@@ -343,6 +345,10 @@ class Timestamp(_Timestamp):
         return self._get_field('woy')
 
     weekofyear = week
+
+    @property
+    def millisecond(self):
+        return self._get_field('ms')
 
     @property
     def microsecond(self):
@@ -2998,12 +3004,19 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
             out[i] = dts.sec
         return out
 
+    elif field == 'ms':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT: out[i] = -1; continue
+
+            pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
+            out[i] = dts.us / 1000
+        return out
     elif field == 'us':
         for i in range(count):
             if dtindex[i] == NPY_NAT: out[i] = -1; continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], PANDAS_FR_ns, &dts)
-            out[i] = dts.us
+            out[i] = dts.us - 1000*(dts.us/1000)
         return out
 
     elif field == 'ns':

@@ -81,7 +81,7 @@ class CheckNameIntegration(object):
 
         ok_for_base = ['year','month','day','hour','minute','second','weekofyear','week','dayofweek','weekday','dayofyear','quarter','freq']
         ok_for_period = ok_for_base + ['qyear']
-        ok_for_dt = ok_for_base + ['date','time','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
+        ok_for_dt = ok_for_base + ['date','time','millisecond','microsecond','nanosecond', 'is_month_start', 'is_month_end', 'is_quarter_start',
                                    'is_quarter_end', 'is_year_start', 'is_year_end', 'tz']
         ok_for_dt_methods = ['to_period','to_pydatetime','tz_localize','tz_convert']
         ok_for_td = ['days','hours','minutes','seconds','milliseconds','microseconds','nanoseconds']
@@ -217,7 +217,7 @@ class CheckNameIntegration(object):
         s_orig = s.copy()
         s.iloc[2] = pd.NaT
 
-        for attr in ['microsecond','nanosecond','second','minute','hour','day']:
+        for attr in ['millisecond','microsecond','nanosecond','second','minute','hour','day']:
             expected = getattr(s.dt,attr).copy()
             expected.iloc[2] = np.nan
             result = getattr(s.dt,attr)
