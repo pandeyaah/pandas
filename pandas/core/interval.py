@@ -206,7 +206,15 @@ class IntervalIndex(Index, IntervalMixin):
 
     @cache_readonly
     def is_monotonic(self):
-        pass
+        if not self.left.is_monotonic:
+            return False
+        if not self.right.is_monotonic:
+            return False
+        assert self.is_unique
+        # needs cython to handle non-unique but still monotonic?
+        if self.closed == 'both':
+            return (self.left[1:] > self.right[:-1]).all()
+        return (self.left[1:] >= self.right[:-1]).all()
 
     @cache_readonly
     def is_unique(self):

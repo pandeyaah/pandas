@@ -98,14 +98,25 @@ class TestIntervalIndex(tm.TestCase):
         self.assertTrue(self.index.is_monotonic)
         self.assertTrue(self.index.is_unique)
 
-        idx = IntervalIndex([0, 2], [1, 3])
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)])
+        self.assertTrue(idx.is_monotonic)
+
+        idx = IntervalIndex.from_tuples([(0, 1), (1, 2)], closed='left')
+        self.assertTrue(idx.is_monotonic)
+
+        idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)])
+        self.assertFalse(idx.is_monotonic)
+        self.assertTrue(idx.is_unique)
+
+        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
         self.assertFalse(idx.is_monotonic)
 
-        idx = IntervalIndex([0, 1], [1, 2], closed='both')
+        idx = IntervalIndex.from_tuples([(0, 1), (1, 2)], closed='both')
         self.assertFalse(idx.is_monotonic)
 
-        idx = IntervalIndex([0, 2], [0, 2])
-        self.assertFalse(self.index.is_unique)
+        idx = IntervalIndex.from_tuples([(0, 2), (0, 2)])
+        self.assertFalse(idx.is_unique)
+        # self.assertTrue(idx.is_monotonic)
 
     def test_repr(self):
         expected = ("<class 'pandas.core.interval.IntervalIndex'>\n"
