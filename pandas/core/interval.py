@@ -1,9 +1,10 @@
 import numpy as np
 
 from pandas.core.base import PandasObject, IndexOpsMixin
-from pandas.core.common import _values_from_object
-from pandas.core.index import Index
+from pandas.core.common import _values_from_object, _ensure_platform_int
+from pandas.core.index import Index, _ensure_index
 from pandas.util.decorators import cache_readonly
+import pandas.core.common as com
 
 
 _VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
@@ -110,7 +111,6 @@ class Interval(PandasObject, IntervalMixin):
                  self.right, self.closed))
 
 
-
 class IntervalIndex(Index, IntervalMixin):
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -118,16 +118,29 @@ class IntervalIndex(Index, IntervalMixin):
     _allow_index_ops = True
     _engine = None # disable it
 
-    def __new__(cls, left, right, closed='right', name=None):
+    def __new__(cls, left, right, closed='right', freq=None, name=None):
         # TODO: validation
         result = object.__new__(cls)
-        result._left = Index(left)
-        result._right = Index(right)
+        result._left = _ensure_index(left)
+        result._right = _ensure_index(right)
         result._closed = closed
+        result._freq = freq
         result.name = name
         result._validate()
         result._reset_identity()
         return result
+
+    def _validate(self):
+        IntervalMixin._validate(self)
+        if len(self.left) != len(self.right):
+            raise ValueError('left and right must have the same length')
+        if self.freq is not None:
+            if self.closed in ['neither', 'both']:
+                raise ValueError("closed must be 'left' or 'right' if freq is"
+                                 "provided")
+        else:
+            # infer freq?
+            pass
 
     def _simple_new(cls, values, name=None, **kwargs):
         # ensure we don't end up here (this is a superclass method)
@@ -138,16 +151,37 @@ class IntervalIndex(Index, IntervalMixin):
         return type(self).from_intervals
 
     @classmethod
-    def from_breaks(cls, breaks, closed='right', name=None):
-        return cls(breaks[:-1], breaks[1:], closed, name)
+    def from_breaks(cls, breaks, closed='right', freq=None, name=None):
+        return cls(breaks[:-1], breaks[1:], closed, freq, name)
 
     @classmethod
-    def from_intervals(cls, data, name=None):
+    def from_intervals(cls, data, freq=None, name=None):
         # TODO: cythonize (including validation for closed)
-        left = [i.left for i in data]
-        right = [i.right for i in data]
         closed = data[0].closed
-        return cls(left, right, closed, name)
+        left = []
+        right = []
+        for interval in data:
+            if interval.closed != closed:
+                raise ValueError("inconsistent value of 'closed'")
+            left.append(interval.left)
+            right.append(interval.right)
+        return cls(left, right, closed, freq, name)
+
+    @classmethod
+    def from_tuples(cls, data, closed='right', freq=None, name=None):
+        left = []
+        right = []
+        for l, r in data:
+            left.append(l)
+            right.append(r)
+        return cls(left, right, closed, freq, name)
+
+    def to_tuples(self):
+        return Index(com._asarray_tuplesafe(zip(self.left, self.right)))
+
+    @property
+    def freq(self):
+        return self._freq
 
     def __len__(self):
         return len(self.left)
@@ -170,21 +204,45 @@ class IntervalIndex(Index, IntervalMixin):
     def dtype(self):
         return np.dtype('O')
 
+    @cache_readonly
+    def is_monotonic(self):
+        pass
+
+    @cache_readonly
+    def is_unique(self):
+        return self.to_tuples().is_unique
+
+    def _round_key(self, key, side='left'):
+        if self.freq is None:
+            raise KeyError('cannot round key if freq is unknown')
+        # TODO: handle key as a string (if the left index can handle it)
+        op = np.floor if side == 'left' else np.ceil
+        int_key = _ensure_platform_int(op((key - self.left[0]) / self.freq))
+        new_key = self.left[0] + int_key * self.freq
+        return new_key
+
+    def _assert_bounds_monotonic(self):
+        if not self.left.is_monotonic and self.right.is_monotonic:
+            raise KeyError("cannot lookup values on an IntervalIndex with "
+                           "non-monotonic bounds")
+
     def get_loc(self, key):
         if isinstance(key, Interval):
             # TODO: handle key closed/open
             start, end = self.slice_locs(key.left, key.right)
         else:
-            # TODO: handle decreasing monotonic intervals
-            if not self.left.is_monotonic and self.right.is_monotonic:
-                raise KeyError("cannot lookup values on a non-monotonic "
-                               "IntervalIndex")
+            try:
+                sub_index = getattr(self, self.closed)
+                return sub_index.get_loc(self._round_key(key, self.closed))
+            except KeyError:
+                # TODO: handle decreasing monotonic intervals
+                self._assert_bounds_monotonic()
 
-            side_start = 'left' if self.closed_right else 'right'
-            start = self.right.searchsorted(key, side=side_start)
+                side_start = 'left' if self.closed_right else 'right'
+                start = self.right.searchsorted(key, side=side_start)
 
-            side_end = 'right' if self.closed_left else 'left'
-            end = self.left.searchsorted(key, side=side_end)
+                side_end = 'right' if self.closed_left else 'left'
+                end = self.left.searchsorted(key, side=side_end)
 
         if start == end:
             raise KeyError(key)
@@ -194,19 +252,40 @@ class IntervalIndex(Index, IntervalMixin):
         else:
             return slice(start, end)
 
-    def get_indexer(self, key):
+    def get_indexer(self, target):
         # should reuse the core of get_loc
         # if the key consists of intervals, needs unique values to give
         # sensible results (like DatetimeIndex)
         # if the key consists of scalars, the index's intervals must also be
         # non-overlapping
-        raise NotImplementedError
+        target = _ensure_index(target)
+        if isinstance(target, IntervalIndex):
+            left_indexer = self.get_indexer(target.left)
+            right_indexer = self.get_indexer(target.right)
+            different = left_indexer != right_indexer
+            indexer = left_indexer.copy()
+            indexer[different] = -1
+            return indexer
+        try:
+            # TODO: try looking up key directly before rounding?
+            sub_index = getattr(self, self.closed)
+            return sub_index.get_indexer(self._round_key(key, self.closed))
+        except KeyError:
+            raise NotImplementedError
 
-    def slice_locs(self, start, end):
+    def slice_locs(self, start=None, end=None):
         # should be more efficient than directly calling the superclass method,
         # which calls get_loc (we don't need to do binary search twice for each
         # key)
-        raise NotImplementedError
+        self._assert_bounds_monotonic()
+
+        side_start = 'left' if self.closed_right else 'right'
+        start_slice = self.right.searchsorted(start, side=side_start)
+
+        side_end = 'right' if self.closed_left else 'left'
+        end_slice = self.left.searchsorted(end, side=side_end)
+
+        return start_slice, end_slice
 
     def __contains__(self, key):
         try:

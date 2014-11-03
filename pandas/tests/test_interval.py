@@ -113,12 +113,27 @@ class TestIntervalIndex(tm.TestCase):
         IntervalIndex((0, 1), (1, 2), closed='right')
         self.assertEqual(repr(self.index), expected)
 
-    def test_get_loc(self):
+    def test_get_loc_value(self):
         self.assertRaises(KeyError, self.index.get_loc, 0)
         self.assertEqual(self.index.get_loc(0.5), 0)
         self.assertEqual(self.index.get_loc(1), 0)
         self.assertEqual(self.index.get_loc(1.5), 1)
         self.assertEqual(self.index.get_loc(2), 1)
+        self.assertRaises(KeyError, self.index.get_loc, -1)
+        self.assertRaises(KeyError, self.index.get_loc, 3)
+
+        idx = IntervalIndex([0, 1], [2, 3])
+        self.assertEqual(idx.get_loc(0.5), 0)
+        self.assertEqual(idx.get_loc(1), 0)
+        self.assertEqual(idx.get_loc(1.5), slice(0, 2))
+        self.assertEqual(idx.get_loc(2), slice(0, 2))
+        self.assertEqual(idx.get_loc(3), 1)
+        self.assertRaises(KeyError, idx.get_loc, 3.5)
+
+        idx = IntervalIndex([0, 2], [1, 3])
+        self.assertRaises(KeyError, idx.get_loc, 1.5)
+
+    def test_get_loc_interval(self):
         self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
         self.assertRaises(KeyError, self.index.get_loc,
                           Interval(0, 1, 'left'))
