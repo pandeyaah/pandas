@@ -57,6 +57,8 @@ class IntervalMixin(object):
 
 # TODO: cythonize this whole class?
 class Interval(PandasObject, IntervalMixin):
+    _typ = 'interval'
+
     def __init__(self, left, right, closed='right'):
         """Object representing an interval
         """
@@ -110,6 +112,11 @@ class Interval(PandasObject, IntervalMixin):
 
 
 class IntervalIndex(Index, IntervalMixin):
+    _typ = 'intervalindex'
+    _comparables = ['name']
+    _attributes = ['name', 'closed']
+    _allow_index_ops = True
+
     def __new__(cls, left, right, closed='right', name=None):
         # TODO: validation
         result = object.__new__(cls)
