@@ -116,6 +116,7 @@ class IntervalIndex(Index, IntervalMixin):
     _comparables = ['name']
     _attributes = ['name', 'closed']
     _allow_index_ops = True
+    _engine = None # disable it
 
     def __new__(cls, left, right, closed='right', name=None):
         # TODO: validation
@@ -148,12 +149,22 @@ class IntervalIndex(Index, IntervalMixin):
         closed = data[0].closed
         return cls(left, right, closed, name)
 
+    def __len__(self):
+        return len(self.left)
+
     @cache_readonly
-    def _data(self):
+    def values(self):
         # TODO: cythonize
         zipped = zip(self.left, self.right)
         items = [Interval(l, r, self.closed) for l, r in zipped]
         return np.array(items, dtype=object)
+
+    def __array__(self, result=None):
+        """ the array interface, return my values """
+        return self.values
+
+    def _array_values(self):
+        return self.values
 
     @cache_readonly
     def dtype(self):
@@ -161,8 +172,8 @@ class IntervalIndex(Index, IntervalMixin):
 
     def get_loc(self, key):
         if isinstance(key, Interval):
-            # TODO: fall back to something like slice_locs if key not found
-            return self._engine.get_loc(_values_from_object(key))
+            # TODO: handle key closed/open
+            start, end = self.slice_locs(key.left, key.right)
         else:
             # TODO: handle decreasing monotonic intervals
             if not self.left.is_monotonic and self.right.is_monotonic:
@@ -175,13 +186,13 @@ class IntervalIndex(Index, IntervalMixin):
             side_end = 'right' if self.closed_left else 'left'
             end = self.left.searchsorted(key, side=side_end)
 
-            if start == end:
-                raise KeyError(key)
+        if start == end:
+            raise KeyError(key)
 
-            if start + 1 == end:
-                return start
-            else:
-                return slice(start, end)
+        if start + 1 == end:
+            return start
+        else:
+            return slice(start, end)
 
     def get_indexer(self, key):
         # should reuse the core of get_loc
@@ -214,7 +225,12 @@ class IntervalIndex(Index, IntervalMixin):
 
     def __repr__(self):
         lines = [repr(type(self))]
-        lines.extend(str(interval) for interval in self)
+        if len(self) > 10:
+            lines.extend(str(interval) for interval in self[:5])
+            lines.append('...')
+            lines.extend(str(interval) for interval in self[-5:])
+        else:
+            lines.extend(str(interval) for interval in self)
         lines.append('Length: %s, Closed: %r' %
                      (len(self), self.closed))
         return '\n'.join(lines)
