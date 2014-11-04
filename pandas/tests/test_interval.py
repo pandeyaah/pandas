@@ -146,9 +146,9 @@ class TestIntervalIndex(tm.TestCase):
 
     def test_get_loc_interval(self):
         self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
-        self.assertRaises(KeyError, self.index.get_loc,
-                          Interval(0, 1, 'left'))
-        # self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
+        self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
+        self.assertRaises(KeyError, self.index.get_loc, Interval(0, 1, 'left'))
+        self.assertRaises(KeyError, self.index.get_loc, Interval(0, 2))
 
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
@@ -193,11 +193,13 @@ class TestIntervalIndex(tm.TestCase):
         self.assertIn(2, self.index)
 
         self.assertIn(Interval(0, 1), self.index)
-        self.assertNotIn(Interval(0, 2), self.index)
-        # self.assertIn(Interval(0, 0.5), self.index)
+        self.assertIn(Interval(0, 2), self.index)
+        self.assertIn(Interval(0, 0.5), self.index)
+        self.assertNotIn(Interval(3, 5), self.index)
+        self.assertNotIn(Interval(-1, 0, closed='left'), self.index)
 
     def test_non_contiguous(self):
-        index = IntervalIndex([0, 1], [2, 3])
+        index = IntervalIndex.from_tuples([(0, 1), (2, 3)])
         target = [0.5, 1.5, 2.5]
         actual = index.get_indexer(target)
         expected = [0, -1, 1]

@@ -234,23 +234,23 @@ class IntervalIndex(Index, IntervalMixin):
             raise KeyError("cannot lookup values on an IntervalIndex with "
                            "non-monotonic bounds")
 
+    def _get_regular(self, key, method='get_loc'):
+        try:
+            sub_index = getattr(self, self.closed)
+        except AttributeError:
+            raise KeyError
+        new_key = self._round_key(key, self.closed)
+        return getattr(sub_index, method)(new_key)
+
     def get_loc(self, key):
         if isinstance(key, Interval):
-            # TODO: handle key closed/open
-            start, end = self.slice_locs(key.left, key.right)
+            start, end = self._slice_locs_interval_or_point(key)
         else:
             try:
-                sub_index = getattr(self, self.closed)
-                return sub_index.get_loc(self._round_key(key, self.closed))
+                return self._get_regular(key, 'get_loc')
             except KeyError:
                 # TODO: handle decreasing monotonic intervals
-                self._assert_bounds_monotonic()
-
-                side_start = 'left' if self.closed_right else 'right'
-                start = self.right.searchsorted(key, side=side_start)
-
-                side_end = 'right' if self.closed_left else 'left'
-                end = self.left.searchsorted(key, side=side_end)
+                start, end = self._slice_locs_interval_or_point(key)
 
         if start == end:
             raise KeyError(key)
@@ -267,33 +267,62 @@ class IntervalIndex(Index, IntervalMixin):
         # if the key consists of scalars, the index's intervals must also be
         # non-overlapping
         target = _ensure_index(target)
-        if isinstance(target, IntervalIndex):
-            left_indexer = self.get_indexer(target.left)
-            right_indexer = self.get_indexer(target.right)
-            different = left_indexer != right_indexer
-            indexer = left_indexer.copy()
-            indexer[different] = -1
-            return indexer
         try:
+            if isinstance(target, IntervalIndex):
+                if target.freq == self.freq and target.closed == self.closed:
+                    return self.left.get_indexer(target.left)
+                else:
+                    raise KeyError
             # TODO: try looking up key directly before rounding?
-            sub_index = getattr(self, self.closed)
-            return sub_index.get_indexer(self._round_key(key, self.closed))
+            return self._get_regular(target, 'get_indexer')
         except KeyError:
-            raise NotImplementedError
+            # fall back on binary search
+            start, end = self._slice_locs_interval_or_point(target)
+            if np.any(end - start) > 1:
+                raise KeyError('non-unique index')
+            start[start == end] = -1
+            return start
+
+    def _slice_locs_interval_or_point(self, interval_or_point):
+        """
+        Parameters
+        ----------
+        interval_or_point : label, interval, array of labels or IntervalIndex
+
+        Returns
+        -------
+        start_slice, end_slice : int or array of ints
+        """
+        self._assert_bounds_monotonic()
+
+        interval_closed_left = getattr(interval_or_point, 'closed_left', True)
+        interval_left = getattr(interval_or_point, 'left', interval_or_point)
+
+        interval_closed_right = getattr(interval_or_point, 'closed_right', True)
+        interval_right = getattr(interval_or_point, 'right', interval_or_point)
+
+        overlapping_start = self.closed_right and interval_closed_left
+        side_start = 'left' if overlapping_start else 'right'
+        start_slice = self.right.searchsorted(interval_left, side=side_start)
+
+        overlapping_end = self.closed_left and interval_closed_right
+        side_end = 'right' if overlapping_end else 'left'
+        end_slice = self.left.searchsorted(interval_right, side=side_end)
+
+        return start_slice, end_slice
 
     def slice_locs(self, start=None, end=None):
         # should be more efficient than directly calling the superclass method,
         # which calls get_loc (we don't need to do binary search twice for each
         # key)
-        self._assert_bounds_monotonic()
 
-        side_start = 'left' if self.closed_right else 'right'
-        start_slice = self.right.searchsorted(start, side=side_start)
+        # side_start = 'left' if self.closed_right else 'right'
+        # start_slice = self.right.searchsorted(start, side=side_start)
 
-        side_end = 'right' if self.closed_left else 'left'
-        end_slice = self.left.searchsorted(end, side=side_end)
-
-        return start_slice, end_slice
+        # side_end = 'right' if self.closed_left else 'left'
+        # end_slice = self.left.searchsorted(end, side=side_end)
+        interval = Interval(start, end, closed='both')
+        return self._slice_locs_interval_or_point(interval)
 
     def __contains__(self, key):
         try:
