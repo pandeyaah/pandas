@@ -312,15 +312,10 @@ class IntervalIndex(Index, IntervalMixin):
         return start_slice, end_slice
 
     def slice_locs(self, start=None, end=None):
-        # should be more efficient than directly calling the superclass method,
-        # which calls get_loc (we don't need to do binary search twice for each
-        # key)
-
-        # side_start = 'left' if self.closed_right else 'right'
-        # start_slice = self.right.searchsorted(start, side=side_start)
-
-        # side_end = 'right' if self.closed_left else 'left'
-        # end_slice = self.left.searchsorted(end, side=side_end)
+        if start is None:
+            start = self.left[0]
+        if end is None:
+            end = self.right[-1]
         interval = Interval(start, end, closed='both')
         return self._slice_locs_interval_or_point(interval)
 
