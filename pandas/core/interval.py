@@ -342,8 +342,8 @@ class IntervalIndex(Index, IntervalMixin):
             lines.extend(str(interval) for interval in self[-5:])
         else:
             lines.extend(str(interval) for interval in self)
-        lines.append('Length: %s, Closed: %r' %
-                     (len(self), self.closed))
+        lines.append('Length: %s, Closed: %r, Freq: %r' %
+                     (len(self), self.closed, self.freq))
         return '\n'.join(lines)
 
     def equals(self, other):

@@ -120,7 +120,7 @@ class TestIntervalIndex(tm.TestCase):
 
     def test_repr(self):
         expected = ("<class 'pandas.core.interval.IntervalIndex'>\n"
-                    "(0, 1]\n(1, 2]\nLength: 2, Closed: 'right'")
+                    "(0, 1]\n(1, 2]\nLength: 2, Closed: 'right', Freq: None")
         IntervalIndex((0, 1), (1, 2), closed='right')
         self.assertEqual(repr(self.index), expected)
 
