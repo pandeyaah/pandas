@@ -77,17 +77,14 @@ class Interval(PandasObject, IntervalMixin):
         self._closed = closed
         self._validate()
 
-    def _ge_left(self, key):
-        return key > self.left if self.open_left else key >= self.left
-
-    def _le_right(self, key):
-        return key < self.right if self.open_right else key <= self.right
-
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
 
     def __contains__(self, key):
-        return self._ge_left(key) and self._le_right(key)
+        if isinstance(key, Interval):
+            raise TypeError('__contains__ not defined for two intervals')
+        return ((self.left < key if self.open_left else self.left <= key) and
+                (key < self.right if self.open_right else key <= self.right))
 
     def __eq__(self, other):
         try:
@@ -99,6 +96,24 @@ class Interval(PandasObject, IntervalMixin):
 
     def __ne__(self, other):
         return not self == other
+
+    def __lt__(self, other):
+        other_left = getattr(other, 'left', other)
+        if self.open_right or getattr(other, 'open_left', False):
+            return self.right <= other_left
+        return self.right < other_left
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __gt__(self, other):
+        other_right = getattr(other, 'right', other)
+        if self.open_left or getattr(other, 'open_right', False):
+            return self.left >= other_right
+        return self.left > other_right
+
+    def __ge__(self, other):
+        return self > other or self == other
 
     # TODO: add arithmetic operations
 

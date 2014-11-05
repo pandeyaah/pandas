@@ -47,8 +47,14 @@ class TestInterval(tm.TestCase):
         self.assertNotEqual(Interval(0, 1), Interval(0, 1, closed='left'))
 
     def test_comparison(self):
-        self.assertRaises(TypeError, lambda: Interval(0, 1) < 2)
-        self.assertRaises(TypeError, lambda: 0 >= Interval(0, 1))
+        self.assertTrue(Interval(0, 1) < 2)
+        self.assertTrue(Interval(0, 1) > 0)
+        self.assertTrue(Interval(0, 1) < Interval(1, 2))
+        self.assertTrue(Interval(0, 1) <= Interval(0, 1))
+
+        self.assertFalse(Interval(0, 1) <= Interval(0.5, 1.5))
+        self.assertFalse(Interval(0, 1) < 1)
+        self.assertFalse(Interval(0, 1, closed='left') >= 0)
 
     def test_hash(self):
         # should not raise
