@@ -55,14 +55,17 @@ class IntervalMixin(object):
         if self.closed not in _VALID_CLOSED:
             raise ValueError("invalid options for 'closed': %s" % self.closed)
 
-    def _undefined(self, other):
-        raise TypeError('comparisons with intervals are undefined; instead '
-                        'compare with interval.left or interval.right')
+    def __lt__(self, other):
+        other_left = getattr(other, 'left', other)
+        if self.open_right or getattr(other, 'open_left', False):
+            return self.right <= other_left
+        return self.right < other_left
 
-    __lt__ = _undefined
-    __le__ = _undefined
-    __gt__ = _undefined
-    __ge__ = _undefined
+    def __gt__(self, other):
+        other_right = getattr(other, 'right', other)
+        if self.open_left or getattr(other, 'open_right', False):
+            return self.left >= other_right
+        return self.left > other_right
 
 
 # TODO: cythonize this whole class?
@@ -97,20 +100,8 @@ class Interval(PandasObject, IntervalMixin):
     def __ne__(self, other):
         return not self == other
 
-    def __lt__(self, other):
-        other_left = getattr(other, 'left', other)
-        if self.open_right or getattr(other, 'open_left', False):
-            return self.right <= other_left
-        return self.right < other_left
-
     def __le__(self, other):
         return self < other or self == other
-
-    def __gt__(self, other):
-        other_right = getattr(other, 'right', other)
-        if self.open_left or getattr(other, 'open_right', False):
-            return self.left >= other_right
-        return self.left > other_right
 
     def __ge__(self, other):
         return self > other or self == other
@@ -127,7 +118,7 @@ class Interval(PandasObject, IntervalMixin):
                 (type(self).__name__, self.left, self.right, self.closed))
 
 
-class IntervalIndex(Index, IntervalMixin):
+class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
@@ -368,4 +359,22 @@ class IntervalIndex(Index, IntervalMixin):
         except AttributeError:
             return False
 
-    # TODO: add comparisons and arithmetic operations
+    def __eq__(self, other):
+        result = ((self.left == getattr(other, 'left', other))
+                  & (self.right == getattr(other, 'right', other)))
+        if self.closed != getattr(other, 'closed', 'both'):
+            # do the actual comparisons first anyways to ensure broadcast
+            # compatibility
+            result[:] = False
+        return result
+
+    def __ne__(self, other):
+        return np.logical_not(self == other)
+
+    def __le__(self, other):
+        return (self < other) | (self == other)
+
+    def __ge__(self, other):
+        return (self > other) | (self == other)
+
+    # TODO: arithmetic operations

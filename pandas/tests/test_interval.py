@@ -244,6 +244,53 @@ class TestIntervalIndex(tm.TestCase):
         actual = other.union(self.index)
         self.assertTrue(expected.equals(actual))
 
+    def test_comparison(self):
+        actual = self.index > 0
+        expected = [True, True]
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index <= 1
+        expected = [False, False]
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index < 1.5
+        expected = [True, False]
+        self.assert_numpy_array_equal(actual, expected)
+        actual = self.index <= 1.5
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = Interval(0, 1) < self.index
+        expected = [False, True]
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = Interval(0.5, 1.5) > self.index
+        expected = [False, False]
+        self.assert_numpy_array_equal(actual, expected)
+        actual = self.index > Interval(0.5, 1.5)
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index == self.index
+        expected = [True, True]
+        self.assert_numpy_array_equal(actual, expected)
+        actual = self.index <= self.index
+        self.assert_numpy_array_equal(actual, expected)
+        actual = self.index >= self.index
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index < self.index
+        expected = [False, False]
+        self.assert_numpy_array_equal(actual, expected)
+        actual = self.index > self.index
+        self.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index == IntervalIndex.from_breaks([0, 1, 2], 'left')
+        self.assert_numpy_array_equal(actual, expected)
+
+        self.assertRaises(ValueError, lambda: self.index > np.arange(3))
+        # numpy<1.10 incorrectly raises an AttributeError instead of ValueError
+        # for np.arange(2) == np.arange(3), so allow any exception here:
+        self.assertRaises(Exception, lambda: self.index == np.arange(3))
+
     def test_math(self):
         # add, subtract, multiply, divide with scalers should be OK
         actual = 2 * self.index + 1
