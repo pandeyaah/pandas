@@ -41,9 +41,6 @@ class IntervalMixin(object):
 
     @cache_readonly
     def mid(self):
-        # TODO: figure out how to do add/sub as arithemtic even on Index
-        # objects. Is there a work around while we have deprecated +/- as
-        # union/difference? Possibly need to add `add` and `sub` methods.
         try:
             return 0.5 * (self.left + self.right)
         except TypeError:
@@ -212,6 +209,15 @@ class IntervalIndex(IntervalMixin, Index):
         return np.dtype('O')
 
     @cache_readonly
+    def mid(self):
+        try:
+            return Index(0.5 * (self.left.values + self.right.values))
+        except TypeError:
+            # datetime safe version
+            delta = self.right.values - self.left.values
+            return Index(self.left.values + 0.5 * delta)
+
+    @cache_readonly
     def is_monotonic(self):
         if not self.left.is_monotonic:
             return False
@@ -335,7 +341,7 @@ class IntervalIndex(IntervalMixin, Index):
         if not isinstance(left, Index):
             return Interval(left, right, self.closed)
         else:
-            return type(self)(left, right, self.closed)
+            return type(self)(left, right, self.closed, self.freq, self.name)
 
     def __repr__(self):
         lines = [repr(type(self))]

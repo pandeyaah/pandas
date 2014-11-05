@@ -100,9 +100,14 @@ class TestIntervalIndex(tm.TestCase):
         self.assertEqual(len(self.index), 2)
         self.assertEqual(self.index.size, 2)
 
-        self.assert_numpy_array_equal(self.index.mid, [0.5, 1.5])
         self.assert_numpy_array_equal(self.index.left, [0, 1])
+        self.assertIsInstance(self.index.left, pd.Index)
+
         self.assert_numpy_array_equal(self.index.right, [1, 2])
+        self.assertIsInstance(self.index.right, pd.Index)
+
+        self.assert_numpy_array_equal(self.index.mid, [0.5, 1.5])
+        self.assertIsInstance(self.index.mid, pd.Index)
 
         self.assertEqual(self.index.closed, 'right')
 
