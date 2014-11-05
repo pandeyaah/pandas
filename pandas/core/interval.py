@@ -55,6 +55,15 @@ class IntervalMixin(object):
         if self.closed not in _VALID_CLOSED:
             raise ValueError("invalid options for 'closed': %s" % self.closed)
 
+    def _undefined(self, other):
+        raise TypeError('comparisons with intervals are undefined; instead '
+                        'compare with interval.left or interval.right')
+
+    __lt__ = _undefined
+    __le__ = _undefined
+    __gt__ = _undefined
+    __ge__ = _undefined
+
 
 # TODO: cythonize this whole class?
 class Interval(PandasObject, IntervalMixin):
@@ -68,8 +77,17 @@ class Interval(PandasObject, IntervalMixin):
         self._closed = closed
         self._validate()
 
+    def _ge_left(self, key):
+        return key > self.left if self.open_left else key >= self.left
+
+    def _le_right(self, key):
+        return key < self.right if self.open_right else key <= self.right
+
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
+
+    def __contains__(self, key):
+        return self._ge_left(key) and self._le_right(key)
 
     def __eq__(self, other):
         try:
@@ -82,22 +100,6 @@ class Interval(PandasObject, IntervalMixin):
     def __ne__(self, other):
         return not self == other
 
-    def __lt__(self, other):
-        other_left = getattr(other, 'left', other)
-        if self.open_right or getattr(other, 'open_left', False):
-            return self.right <= other_left
-        return self.right < other_left
-
-    def __le__(self, other):
-        return NotImplementedError
-
-    def __gt__(self, other):
-        return NotImplementedError
-
-    def __ge__(self, other):
-        return NotImplementedError
-
-    # TODO: finish comparisons
     # TODO: add arithmetic operations
 
     def __str__(self):
@@ -174,7 +176,7 @@ class IntervalIndex(Index, IntervalMixin):
         for l, r in data:
             left.append(l)
             right.append(r)
-        return cls(left, right, closed, freq, name)
+        return cls(np.array(left), np.array(right), closed, freq, name)
 
     def to_tuples(self):
         return Index(com._asarray_tuplesafe(zip(self.left, self.right)))

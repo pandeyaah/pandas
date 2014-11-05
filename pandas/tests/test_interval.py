@@ -27,18 +27,28 @@ class TestInterval(tm.TestCase):
                          "Interval(0, 1, closed='left')")
         self.assertEqual(str(interval_left), "[0, 1)")
 
+    def test_contains(self):
+        self.assertIn(0.5, self.interval)
+        self.assertIn(1, self.interval)
+        self.assertNotIn(0, self.interval)
+        self.assertRaises(TypeError, lambda: self.interval in self.interval)
+
+        interval = Interval(0, 1, closed='both')
+        self.assertIn(0, interval)
+        self.assertIn(1, interval)
+
+        interval = Interval(0, 1, closed='neither')
+        self.assertNotIn(0, interval)
+        self.assertIn(0.5, interval)
+        self.assertNotIn(1, interval)
+
     def test_equal(self):
         self.assertEqual(Interval(0, 1), Interval(0, 1, closed='right'))
         self.assertNotEqual(Interval(0, 1), Interval(0, 1, closed='left'))
 
     def test_comparison(self):
-        self.assertLess(Interval(0, 1), 2)
-        self.assertLess(Interval(0, 1, closed='left'), 1)
-        self.assertLess(Interval(0, 1), Interval(2, 3))
-        self.assertLess(Interval(0, 1), Interval(1, 2))
-
-        self.assertFalse(Interval(0, 1) < 1)
-        self.assertFalse(Interval(0, 1) < Interval(1, 2, closed='left'))
+        self.assertRaises(TypeError, lambda: Interval(0, 1) < 2)
+        self.assertRaises(TypeError, lambda: 0 >= Interval(0, 1))
 
     def test_hash(self):
         # should not raise
@@ -156,8 +166,9 @@ class TestIntervalIndex(tm.TestCase):
     def test_get_loc_interval(self):
         self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
         self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
-        self.assertRaises(KeyError, self.index.get_loc, Interval(0, 1, 'left'))
-        self.assertRaises(KeyError, self.index.get_loc, Interval(0, 2))
+        self.assertEqual(self.index.get_loc(Interval(0, 1, 'left')), 0)
+        self.assertRaises(KeyError, self.index.get_loc, Interval(2, 3))
+        self.assertRaises(KeyError, self.index.get_loc, Interval(-1, 0, 'left'))
 
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
