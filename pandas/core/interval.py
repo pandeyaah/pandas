@@ -124,8 +124,7 @@ class Interval(PandasObject, IntervalMixin):
 
     def __repr__(self):
         return ('%s(%r, %r, closed=%r)' %
-                (type(self).__name__, self.left,
-                 self.right, self.closed))
+                (type(self).__name__, self.left, self.right, self.closed))
 
 
 class IntervalIndex(Index, IntervalMixin):
@@ -261,13 +260,13 @@ class IntervalIndex(Index, IntervalMixin):
 
     def get_loc(self, key):
         if isinstance(key, Interval):
-            start, end = self._slice_locs_interval_or_point(key)
+            start, end = self._searchsorted_bounds(key)
         else:
             try:
                 return self._get_regular(key, 'get_loc')
             except KeyError:
                 # TODO: handle decreasing monotonic intervals
-                start, end = self._slice_locs_interval_or_point(key)
+                start, end = self._searchsorted_bounds(key)
 
         if start == end:
             raise KeyError(key)
@@ -278,15 +277,11 @@ class IntervalIndex(Index, IntervalMixin):
             return slice(start, end)
 
     def get_indexer(self, target):
-        # should reuse the core of get_loc
-        # if the key consists of intervals, needs unique values to give
-        # sensible results (like DatetimeIndex)
-        # if the key consists of scalars, the index's intervals must also be
-        # non-overlapping
         target = _ensure_index(target)
         try:
             if isinstance(target, IntervalIndex):
-                if target.freq == self.freq and target.closed == self.closed:
+                if (self.freq is not None and target.freq == self.freq
+                        and target.closed == self.closed):
                     return self.left.get_indexer(target.left)
                 else:
                     raise KeyError
@@ -294,17 +289,17 @@ class IntervalIndex(Index, IntervalMixin):
             return self._get_regular(target, 'get_indexer')
         except KeyError:
             # fall back on binary search
-            start, end = self._slice_locs_interval_or_point(target)
-            if np.any(end - start) > 1:
-                raise KeyError('non-unique index')
+            start, end = self._searchsorted_bounds(target)
+            if np.any(end - start > 1):
+                raise KeyError('cannot uniquely map target to an indexer')
             start[start == end] = -1
             return start
 
-    def _slice_locs_interval_or_point(self, interval_or_point):
+    def _searchsorted_bounds(self, key):
         """
         Parameters
         ----------
-        interval_or_point : label, interval, array of labels or IntervalIndex
+        key : label, interval, array of labels or IntervalIndex
 
         Returns
         -------
@@ -312,19 +307,19 @@ class IntervalIndex(Index, IntervalMixin):
         """
         self._assert_bounds_monotonic()
 
-        interval_closed_left = getattr(interval_or_point, 'closed_left', True)
-        interval_left = getattr(interval_or_point, 'left', interval_or_point)
+        key_closed_left = getattr(key, 'closed_left', True)
+        key_left = getattr(key, 'left', key)
 
-        interval_closed_right = getattr(interval_or_point, 'closed_right', True)
-        interval_right = getattr(interval_or_point, 'right', interval_or_point)
+        key_closed_right = getattr(key, 'closed_right', True)
+        key_right = getattr(key, 'right', key)
 
-        overlapping_start = self.closed_right and interval_closed_left
+        overlapping_start = self.closed_right and key_closed_left
         side_start = 'left' if overlapping_start else 'right'
-        start_slice = self.right.searchsorted(interval_left, side=side_start)
+        start_slice = self.right.searchsorted(key_left, side=side_start)
 
-        overlapping_end = self.closed_left and interval_closed_right
+        overlapping_end = self.closed_left and key_closed_right
         side_end = 'right' if overlapping_end else 'left'
-        end_slice = self.left.searchsorted(interval_right, side=side_end)
+        end_slice = self.left.searchsorted(key_right, side=side_end)
 
         return start_slice, end_slice
 
@@ -334,7 +329,7 @@ class IntervalIndex(Index, IntervalMixin):
         if end is None:
             end = self.right[-1]
         interval = Interval(start, end, closed='both')
-        return self._slice_locs_interval_or_point(interval)
+        return self._searchsorted_bounds(interval)
 
     def __contains__(self, key):
         try:

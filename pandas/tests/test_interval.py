@@ -190,10 +190,11 @@ class TestIntervalIndex(tm.TestCase):
         expected = [-1, 0, 0, 1, 1, -1, -1]
         self.assert_numpy_array_equal(actual, expected)
 
-        # verify that closed='left' and closed='right' cannot be interchanged
-        actual = self.index.get_indexer(index)
-        expected = [-1, -1]
+        actual = self.index.get_indexer(index[:1])
+        expected = [0]
         self.assert_numpy_array_equal(actual, expected)
+
+        self.assertRaises(KeyError, self.index.get_indexer, index)
 
     def test_get_indexer_subintervals(self):
         # return indexers for wholly contained subintervals
@@ -203,14 +204,15 @@ class TestIntervalIndex(tm.TestCase):
         self.assert_numpy_array_equal(actual, expected)
 
         target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
-        actual = self.index.get_indexer(target)
-        expected = [0, -1, 1]
+        self.assertRaises(KeyError, self.index.get_indexer, target)
+
+        actual = self.index.get_indexer(target[[0, -1]])
+        expected = [0, 1]
         self.assert_numpy_array_equal(actual, expected)
 
-        # optional, but would be nice to have
         target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
         actual = self.index.get_indexer(target)
-        expected = [-1, 0, -1]
+        expected = [0, 0, 0]
         self.assert_numpy_array_equal(actual, expected)
 
     def test_contains(self):
