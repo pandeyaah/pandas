@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 from pandas.core.common import _values_from_object, _ensure_platform_int
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, _ensure_index, InvalidIndexError
 from pandas.util.decorators import cache_readonly
 import pandas.core.common as com
 
@@ -105,10 +105,10 @@ class Interval(PandasObject, IntervalMixin):
 
     # TODO: add arithmetic operations
 
-    def __str__(self):
-        start_symbol = '[' if self.closed_left else '('
-        end_symbol = ']' if self.closed_right else ')'
-        return '%s%s, %s%s' % (start_symbol, self.left, self.right, end_symbol)
+    def __unicode__(self):
+        start_symbol = u'[' if self.closed_left else u'('
+        end_symbol = u']' if self.closed_right else u')'
+        return u'%s%s, %s%s' % (start_symbol, self.left, self.right, end_symbol)
 
     def __repr__(self):
         return ('%s(%r, %r, closed=%r)' %
@@ -187,6 +187,10 @@ class IntervalIndex(IntervalMixin, Index):
     def freq(self):
         return self._freq
 
+    @property
+    def freqstr(self):
+        return str(self.freq)
+
     def __len__(self):
         return len(self.left)
 
@@ -247,13 +251,19 @@ class IntervalIndex(IntervalMixin, Index):
             raise KeyError("cannot lookup values on an IntervalIndex with "
                            "non-monotonic bounds")
 
+    def _convert_scalar_indexer(self, key, typ=None):
+        return key
+
     def _get_regular(self, key, method='get_loc'):
         try:
             sub_index = getattr(self, self.closed)
         except AttributeError:
             raise KeyError
-        new_key = self._round_key(key, self.closed)
-        return getattr(sub_index, method)(new_key)
+        try:
+            key = self._round_key(key, self.closed)
+        except TypeError:
+            raise KeyError
+        return getattr(sub_index, method)(key)
 
     def get_loc(self, key):
         if isinstance(key, Interval):
@@ -272,6 +282,10 @@ class IntervalIndex(IntervalMixin, Index):
             return start
         else:
             return slice(start, end)
+
+    def get_value(self, series, key):
+        loc = self.get_loc(key)
+        return series.iloc[loc]
 
     def get_indexer(self, target):
         target = _ensure_index(target)
