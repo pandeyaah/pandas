@@ -211,6 +211,18 @@ class TestIntervalIndex(tm.TestCase):
         self.assertRaises(KeyError, self.index.get_loc, Interval(2, 3))
         self.assertRaises(KeyError, self.index.get_loc, Interval(-1, 0, 'left'))
 
+    def test_getitem_loc(self):
+
+        # list indexer
+        s = pd.Series(range(4), IntervalIndex.from_breaks(range(5)))
+        result = s.loc[[0.5, 1.5, 2.5, 3.5]]
+        expected = s
+        tm.assert_series_equal(result, expected)
+
+        result = s.loc[[0.5, 1.5, 5, 3.5]]
+        expected = s.iloc[[0,1,3]]
+        tm.assert_series_equal(result, expected)
+
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = [-1, -1, 0, 0, 1, 1, -1]

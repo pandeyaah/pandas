@@ -261,6 +261,18 @@ class IntervalIndex(IntervalMixin, Index):
     def _convert_scalar_indexer(self, key, typ=None):
         return key
 
+    def _convert_list_indexer_for_mixed(self, keyarr, typ=None):
+        """
+        passed a key that is tuplesafe that is integer based
+        and we have a mixed index (e.g. number/labels). figure out
+        the indexer. return None if we can't help
+        """
+        # this doesn't take into account closed ATM
+        indexer = (self._left<keyarr) & (self._right>keyarr)
+
+        # we want integer indices for taking
+        return np.arange(len(self))[indexer]
+
     def _get_regular(self, key, method='get_loc'):
         try:
             sub_index = getattr(self, self.closed)
