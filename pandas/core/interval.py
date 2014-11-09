@@ -288,7 +288,7 @@ class IntervalIndex(IntervalMixin, Index):
         loc = self.get_loc(key)
         return series.iloc[loc]
 
-    def get_indexer(self, target):
+    def get_indexer(self, target, **kwargs):
         target = _ensure_index(target)
         try:
             if isinstance(target, IntervalIndex):

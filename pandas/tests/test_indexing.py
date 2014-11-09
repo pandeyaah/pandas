@@ -3720,7 +3720,7 @@ class TestIndexing(tm.TestCase):
         expected = 0
         self.assertEqual(expected, s.loc[s.loc[0.5]])
         self.assertEqual(expected, s.loc[s.loc[1]])
-        self.assertEqual(expected, s.loc[Interval(0, 1)])
+        self.assertEqual(expected, s.loc[pd.Interval(0, 1)])
 
     def test_scalar_indexer(self):
         # float indexing checked above
