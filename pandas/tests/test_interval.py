@@ -271,6 +271,12 @@ class TestIntervalIndex(tm.TestCase):
         actual = other.union(self.index)
         self.assertTrue(expected.equals(actual))
 
+    def test_intersection(self):
+        other = IntervalIndex.from_breaks([1, 2, 3])
+        expected = IntervalIndex.from_breaks([1, 2])
+        actual = self.index.intersection(other)
+        self.assertTrue(expected.equals(actual))
+
     def test_comparison(self):
         actual = self.index > 0
         expected = [True, True]
