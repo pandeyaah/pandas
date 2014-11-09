@@ -209,6 +209,12 @@ class IntervalIndex(IntervalMixin, Index):
     def _array_values(self):
         return self.values
 
+    def copy(self, deep=False):
+        left = self.left.copy(deep=True) if deep else self.left
+        right = self.right.copy(deep=True) if deep else self.right
+        return type(self)(left, right, closed=self.closed, freq=self.freq,
+                          name=self.name)
+
     @cache_readonly
     def dtype(self):
         return np.dtype('O')

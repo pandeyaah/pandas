@@ -117,6 +117,14 @@ class TestIntervalIndex(tm.TestCase):
         self.assert_numpy_array_equal(np.asarray(self.index), expected)
         self.assert_numpy_array_equal(self.index.values, expected)
 
+    def test_copy(self):
+        actual = self.index.copy()
+        self.assertTrue(actual.equals(self.index))
+
+        actual = self.index.copy(deep=True)
+        self.assertTrue(actual.equals(self.index))
+        self.assertIsNot(actual.left, self.index.left)
+
     def test_delete(self):
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.delete(0)
