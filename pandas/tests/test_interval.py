@@ -279,6 +279,13 @@ class TestIntervalIndex(tm.TestCase):
         actual = self.index.intersection(other)
         self.assertTrue(expected.equals(actual))
 
+    def test_isin(self):
+        actual = self.index.isin(self.index)
+        self.assert_numpy_array_equal([True, True], actual)
+
+        actual = self.index.isin(self.index[:1])
+        self.assert_numpy_array_equal([True, False], actual)
+
     def test_comparison(self):
         actual = self.index > 0
         expected = [True, True]
