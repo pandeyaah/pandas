@@ -3696,6 +3696,12 @@ class TestIndexing(tm.TestCase):
     def test_interval_index(self):
         s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
+        expected = 0
+        self.assertEqual(expected, s.loc[0.5])
+        self.assertEqual(expected, s.loc[1])
+        self.assertEqual(expected, s.loc[pd.Interval(0, 1)])
+        self.assertRaises(KeyError, s.loc.__getitem__, 0)
+
         expected = s.iloc[:3]
         assert_series_equal(expected, s.loc[:3])
         assert_series_equal(expected, s.loc[:2.5])
@@ -3703,24 +3709,15 @@ class TestIndexing(tm.TestCase):
         # pending GH8613
         # assert_series_equal(expected, s.loc[-1:3])
 
-        expected = s.iloc[1:4]
-        assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
-        assert_series_equal(expected, s.loc[[2, 3, 4]])
-        assert_series_equal(expected, s.loc[[1.5, 3, 4]])
-
-        idx = IntervalIndex.from_breaks(np.arange(6), closed='left')
-        s = Series(np.arange(5), idx)
-
-        expected = s.iloc[:3]
-        assert_series_equal(expected, s.loc[:2])
+        def _assert_expected_loc_array_indexer(expected, original, indexer):
+            expected = pd.Series(expected, indexer)
+            actual = original.loc[indexer]
+            assert_series_equal(expected, actual)
 
         expected = s.iloc[1:4]
-        assert_series_equal(expected, s.loc[[1.5, 2, 3]])
-
-        expected = 0
-        self.assertEqual(expected, s.loc[s.loc[0.5]])
-        self.assertEqual(expected, s.loc[s.loc[1]])
-        self.assertEqual(expected, s.loc[pd.Interval(0, 1)])
+        _assert_expected_loc_array_indexer(expected, s, [1.5, 2.5, 3.5])
+        _assert_expected_loc_array_indexer(expected, s, [2, 3, 4])
+        _assert_expected_loc_array_indexer(expected, s, [1.5, 3, 4])
 
     def test_scalar_indexer(self):
         # float indexing checked above
