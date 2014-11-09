@@ -122,7 +122,8 @@ class IntervalIndex(IntervalMixin, Index):
     _allow_index_ops = True
     _engine = None # disable it
 
-    def __new__(cls, left, right, closed='right', freq=None, name=None):
+    def __new__(cls, left, right, closed='right', freq=None, name=None,
+                fastpath=False):
         # TODO: validation
         result = object.__new__(cls)
         result._left = _ensure_index(left)
@@ -305,6 +306,16 @@ class IntervalIndex(IntervalMixin, Index):
                 raise KeyError('cannot uniquely map target to an indexer')
             start[start == end] = -1
             return start
+
+    def get_indexer_non_unique(target, **kwargs):
+        raise KeyError('cannot index an non-unique IntervalIndex')
+
+    def take(self, indexer, axis=0):
+        indexer = com._ensure_platform_int(indexer)
+        new_left = self.left.take(indexer)
+        new_right = self.right.take(indexer)
+        return type(self)(new_left, new_right, self.closed, self.freq,
+                          self.name, fastpath=True)
 
     def _searchsorted_bounds(self, key):
         """

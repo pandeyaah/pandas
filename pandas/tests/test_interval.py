@@ -115,6 +115,14 @@ class TestIntervalIndex(tm.TestCase):
         self.assert_numpy_array_equal(np.asarray(self.index), expected)
         self.assert_numpy_array_equal(self.index.values, expected)
 
+    def test_take(self):
+        actual = self.index.take([0, 1])
+        self.assert_numpy_array_equal(self.index, actual)
+
+        expected = IntervalIndex([0, 0, 1], [1, 1, 2])
+        actual = self.index.take([0, 0, 1])
+        self.assert_numpy_array_equal(expected, actual)
+
     def test_monotonic_and_unique(self):
         self.assertTrue(self.index.is_monotonic)
         self.assertTrue(self.index.is_unique)
