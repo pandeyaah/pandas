@@ -1,5 +1,4 @@
 import numpy as np
-import unittest
 
 from pandas.core.interval import Interval, IntervalIndex
 from pandas.core.index import Index
@@ -61,11 +60,10 @@ class TestInterval(tm.TestCase):
         # should not raise
         hash(self.interval)
 
-    @unittest.skip('no arithmetic yet')
-    def test_math(self):
-        expected = Interval(1, 2)
-        actual = self.interval + 1
-        self.assertEqual(expected, actual)
+    # def test_math(self):
+    #     expected = Interval(1, 2)
+    #     actual = self.interval + 1
+    #     self.assertEqual(expected, actual)
 
 
 class TestIntervalIndex(tm.TestCase):
@@ -103,13 +101,13 @@ class TestIntervalIndex(tm.TestCase):
         self.assertEqual(self.index.size, 2)
 
         self.assert_numpy_array_equal(self.index.left, [0, 1])
-        self.assertIsInstance(self.index.left, pd.Index)
+        self.assertIsInstance(self.index.left, Index)
 
         self.assert_numpy_array_equal(self.index.right, [1, 2])
-        self.assertIsInstance(self.index.right, pd.Index)
+        self.assertIsInstance(self.index.right, Index)
 
         self.assert_numpy_array_equal(self.index.mid, [0.5, 1.5])
-        self.assertIsInstance(self.index.mid, pd.Index)
+        self.assertIsInstance(self.index.mid, Index)
 
         self.assertEqual(self.index.closed, 'right')
 
@@ -341,20 +339,19 @@ class TestIntervalIndex(tm.TestCase):
         # for np.arange(2) == np.arange(3), so allow any exception here:
         self.assertRaises(Exception, lambda: self.index == np.arange(3))
 
-    @unittest.skip('no arithmetic yet')
-    def test_math(self):
-        # add, subtract, multiply, divide with scalers should be OK
-        actual = 2 * self.index + 1
-        expected = IntervalIndex.from_breaks((2 * np.arange(3) + 1))
-        self.assertTrue(expected.equals(actual))
+    # def test_math(self):
+    #     # add, subtract, multiply, divide with scalers should be OK
+    #     actual = 2 * self.index + 1
+    #     expected = IntervalIndex.from_breaks((2 * np.arange(3) + 1))
+    #     self.assertTrue(expected.equals(actual))
 
-        actual = self.index / 2.0 - 1
-        expected = IntervalIndex.from_breaks((np.arange(3) / 2.0 - 1))
-        self.assertTrue(expected.equals(actual))
+    #     actual = self.index / 2.0 - 1
+    #     expected = IntervalIndex.from_breaks((np.arange(3) / 2.0 - 1))
+    #     self.assertTrue(expected.equals(actual))
 
-        with self.assertRaises(TypeError):
-            # doesn't make sense to add two IntervalIndex objects
-            self.index + self.index
+    #     with self.assertRaises(TypeError):
+    #         # doesn't make sense to add two IntervalIndex objects
+    #         self.index + self.index
 
     def test_datetime(self):
         dates = pd.date_range('2000', periods=3)
@@ -373,12 +370,11 @@ class TestIntervalIndex(tm.TestCase):
         expected = [-1, -1, 0, 0, 1, 1, -1]
         self.assert_numpy_array_equal(actual, expected)
 
-    @unittest.skip('no arithmetic yet')
-    def test_datetime_math(self):
+    # def test_datetime_math(self):
 
-        expected = IntervalIndex(pd.date_range('2000-01-02', periods=3))
-        actual = idx + pd.to_timedelta(1, unit='D')
-        self.assertTrue(expected.equals(actual))
+    #     expected = IntervalIndex(pd.date_range('2000-01-02', periods=3))
+    #     actual = idx + pd.to_timedelta(1, unit='D')
+    #     self.assertTrue(expected.equals(actual))
 
     # TODO: other set operations (left join, right join, intersection),
     # set operations with conflicting IntervalIndex objects or other dtypes,
