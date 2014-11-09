@@ -310,6 +310,12 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer_non_unique(target, **kwargs):
         raise KeyError('cannot index an non-unique IntervalIndex')
 
+    def delete(self, loc):
+        new_left = self.left.delete(loc)
+        new_right = self.right.delete(loc)
+        return type(self)(new_left, new_right, self.closed, self.freq,
+                          self.name, fastpath=True)
+
     def take(self, indexer, axis=0):
         indexer = com._ensure_platform_int(indexer)
         new_left = self.left.take(indexer)

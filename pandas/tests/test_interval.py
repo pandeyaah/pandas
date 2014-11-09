@@ -115,6 +115,11 @@ class TestIntervalIndex(tm.TestCase):
         self.assert_numpy_array_equal(np.asarray(self.index), expected)
         self.assert_numpy_array_equal(self.index.values, expected)
 
+    def test_delete(self):
+        expected = IntervalIndex.from_breaks([1, 2])
+        actual = self.index.delete(0)
+        self.assert_numpy_array_equal(expected, actual)
+
     def test_take(self):
         actual = self.index.take([0, 1])
         self.assert_numpy_array_equal(self.index, actual)
