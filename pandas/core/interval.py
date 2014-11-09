@@ -316,6 +316,18 @@ class IntervalIndex(IntervalMixin, Index):
         return type(self)(new_left, new_right, self.closed, self.freq,
                           self.name, fastpath=True)
 
+    def insert(self, loc, item):
+        if not isinstance(item, Interval):
+            raise ValueError('can only insert Interval objects into an '
+                             'IntervalIndex')
+        if not item.closed == self.closed:
+            raise ValueError('inserted item must be closed on the same side '
+                             'as the index')
+        new_left = self.left.insert(loc, item.left)
+        new_right = self.right.insert(loc, item.right)
+        return type(self)(new_left, new_right, self.closed, self.freq,
+                          self.name, fastpath=True)
+
     def take(self, indexer, axis=0):
         indexer = com._ensure_platform_int(indexer)
         new_left = self.left.take(indexer)

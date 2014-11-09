@@ -118,15 +118,24 @@ class TestIntervalIndex(tm.TestCase):
     def test_delete(self):
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.delete(0)
-        self.assert_numpy_array_equal(expected, actual)
+        self.assertTrue(expected.equals(actual))
+
+    def test_insert(self):
+        expected = IntervalIndex.from_breaks(range(4))
+        actual = self.index.insert(2, Interval(2, 3))
+        self.assertTrue(expected.equals(actual))
+
+        self.assertRaises(ValueError, self.index.insert, 0, 1)
+        self.assertRaises(ValueError, self.index.insert, 0,
+                          Interval(2, 3, closed='left'))
 
     def test_take(self):
         actual = self.index.take([0, 1])
-        self.assert_numpy_array_equal(self.index, actual)
+        self.assertTrue(self.index.equals(actual))
 
         expected = IntervalIndex([0, 0, 1], [1, 1, 2])
         actual = self.index.take([0, 0, 1])
-        self.assert_numpy_array_equal(expected, actual)
+        self.assertTrue(expected.equals(actual))
 
     def test_monotonic_and_unique(self):
         self.assertTrue(self.index.is_monotonic)
