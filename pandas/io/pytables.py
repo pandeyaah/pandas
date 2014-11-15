@@ -823,6 +823,8 @@ class HDFStore(StringMixin):
         encoding : default None, provide an encoding for strings
         dropna   : boolean, default True, do not write an ALL nan row to
             the store settable by the option 'io.hdf.dropna_table'
+        write_index  : boolean, default True
+                       save the index column(s) to the store
         """
         if format is None:
             format = get_option("io.hdf.default_format") or 'fixed'
@@ -903,8 +905,12 @@ class HDFStore(StringMixin):
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : boolean, default True, do not write an ALL nan row to
-            the store settable by the option 'io.hdf.dropna_table'
+        dropna       : boolean, default True
+                       do not write an ALL nan row to the store settable by the
+                       option 'io.hdf.dropna_table'
+        write_index  : boolean, default True
+                       save the index column(s) to the store
+
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
@@ -2240,7 +2246,10 @@ class GenericFixed(Fixed):
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
-    def write(self, obj, **kwargs):
+    def write(self, obj, write_index=True, **kwargs):
+        if not write_index:
+            raise NotImplementedError("must write the index for Fixed type stores")
+
         self.set_attrs()
 
     def read_array(self, key):
@@ -3633,7 +3642,7 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None,
-              chunksize=None, expectedrows=None, dropna=True, **kwargs):
+              chunksize=None, expectedrows=None, dropna=True, write_index=True, **kwargs):
 
         if not append and self.is_exists:
             self._handle.remove_node(self.group, 'table')

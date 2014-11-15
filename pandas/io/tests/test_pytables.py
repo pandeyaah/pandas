@@ -4570,6 +4570,39 @@ class TestHDFStore(tm.TestCase):
             result = store.select('test', 'a = "test & test"')
         tm.assert_frame_equal(expected, result)
 
+    def test_write_index(self):
+
+        # GH8319
+        # optionally write the index to a store
+        df = DataFrame({'A' : np.arange(4), 'B' : np.random.randn(4)},
+                       index=MultiIndex.from_product([[1,2],['a','b']],
+                                                     names=['first','seconds']))
+
+        df2 = df.reset_index()
+
+        with ensure_clean_store(self.path) as store:
+
+            # fixed not implemented
+            self.assertRaises(NotImplementedError,
+                              lambda : store.put('df',
+                                                 df2,
+                                                 format='fixed',
+                                                 write_index=False))
+
+            # table
+            store.append('df2',df2,format='table',write_index=False)
+            result = store.select('df2')
+            tm.assert_frame_equal(result, df2)
+
+            s = store.get_storer('df2')
+            self.assertIsNone(getattr(s.table.cols,'index',None))
+
+            # mi drop the indexes
+            store.append('df',df,format='table',write_index=False)
+            result = store.select('df')
+            tm.assert_frame_equal(result, df.reset_index(drop=True))
+
+
     def test_categorical(self):
         # FIXME
 
