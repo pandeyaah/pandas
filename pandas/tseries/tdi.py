@@ -181,7 +181,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, Int64Index):
 
         # convert if not already
         if getattr(data,'dtype',None) != _TD_DTYPE:
-            data = to_timedelta(data,unit=unit,box=False)
+            data = to_timedelta(data,box=False)
         elif copy:
             data = np.array(data,copy=True)
 

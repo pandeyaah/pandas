@@ -852,12 +852,18 @@ class TestTimedeltaIndex(tm.TestCase):
                                  pd.offsets.Second(3)])
         tm.assert_index_equal(result,expected)
 
+        # GH9011
+        # non-ns unit
         expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02'])
         tm.assert_index_equal(TimedeltaIndex(range(3), unit='s'), expected)
         expected = TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:05', '0 days 00:00:09'])
         tm.assert_index_equal(TimedeltaIndex([0, 5, 9], unit='s'), expected)
         expected = TimedeltaIndex(['0 days 00:00:00.400', '0 days 00:00:00.450', '0 days 00:00:01.200'])
         tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'), expected)
+
+        # no boxing
+        expected = (np.array([400, 450, 1200])*1e6).astype('i8').astype('m8[ns]')
+        tm.assert_numpy_array_equal(TimedeltaIndex([400, 450, 1200], unit='ms', box=False), expected)
 
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)
