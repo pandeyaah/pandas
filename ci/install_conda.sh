@@ -77,7 +77,7 @@ conda config --add channels http://conda.binstar.org/pandas || exit 1
 # Useful for debugging any issues with conda
 conda info -a || exit 1
 
-conda create -n pandas python=$TRAVIS_PYTHON_VERSION || exit 1
+conda create -n pandas python=2.7.8 || exit 1
 conda install -n pandas --file=ci/requirements-${TRAVIS_PYTHON_VERSION}${JOB_TAG}.txt || exit 1
 
 conda install -n pandas pip setuptools nose || exit 1
