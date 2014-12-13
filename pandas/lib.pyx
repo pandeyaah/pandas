@@ -7,6 +7,15 @@ from numpy cimport *
 
 np.import_array()
 
+# DYND
+_DYND = False
+try:
+    from dynd import ndt, nd
+    import datashape
+    from datashape import dshape
+except ImportError:  # pragma: no cover
+    pass
+
 cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
         NPY_intp "NPY_INTP"
@@ -81,6 +90,26 @@ PyDateTime_IMPORT
 # initialize numpy
 import_array()
 import_ufunc()
+
+cpdef to_numpy_dtype(arr_or_dtype):
+    """ return the numpy type from the array or dtype """
+
+    # numpy dtype
+    if isinstance(arr_or_dtype, np.dtype):
+        return arr_or_dtype
+
+    # categorical
+    from pandas.core.common import is_categorical_dtype
+    if is_categorical_dtype(arr_or_dtype):
+        return arr_or_dtype
+
+    # ndt
+    try:
+        ds = dshape(arr_or_dtype.dshape).measure
+        ds = getattr(ds,'ty',ds)
+        return ds.to_numpy_dtype()
+    except:
+        return np.dtype('object')
 
 def values_from_object(object o):
     """ return my values or the object if we are say an ndarray """
@@ -294,7 +323,7 @@ def isscalar(object val):
             or util.is_period_object(val))
 
 
-def item_from_zerodim(object val):
+cpdef item_from_zerodim(object val):
     """
     If the value is a zerodim array, return the item it contains.
 
@@ -310,6 +339,12 @@ def item_from_zerodim(object val):
     array([1])
 
     """
+    if _DYND and isinstance(val, nd.array) and val.ndim == 0:
+        val = nd.as_py(val)
+        if _checknull(val):
+            val = np.nan
+        return val
+
     return util.unbox_if_zerodim(val)
 
 

@@ -13,11 +13,12 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 ABCSparseSeries, _infer_dtype_from_scalar,
                                 is_null_slice, is_dtype_equal,
                                 is_null_datelike_scalar, _maybe_promote,
+                                is_integer_dtype,
                                 is_timedelta64_dtype, is_datetime64_dtype,
                                 is_datetime64tz_dtype, is_datetimetz, is_sparse,
                                 array_equivalent, _maybe_convert_string_to_object,
                                 is_categorical, needs_i8_conversion, is_datetimelike_v_numeric,
-                                is_internal_type)
+                                is_internal_type, is_array_view, is_array_type)
 from pandas.core.dtypes import DatetimeTZDtype
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -36,9 +37,12 @@ from pandas import compat
 from pandas.compat import range, map, zip, u
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
 
-
 from pandas.lib import BlockPlacement
 
+try:
+    from dynd import nd, ndt
+except ImportError:
+    pass
 
 class Block(PandasObject):
 
@@ -95,7 +99,11 @@ class Block(PandasObject):
     @property
     def is_view(self):
         """ return a boolean if I am possibly a view """
-        return self.values.base is not None
+        return is_array_view(self.values)
+
+    def view(self):
+        """ return a view on my values """
+        return self.values.view()
 
     @property
     def is_datelike(self):
@@ -134,7 +142,7 @@ class Block(PandasObject):
         return self.values
 
     def to_dense(self):
-        return self.values.view()
+        return self.values
 
     @property
     def fill_value(self):
@@ -439,7 +447,7 @@ class Block(PandasObject):
                     values = self.get_values(dtype=dtype)
 
                 # _astype_nansafe works fine with 1-d only
-                values = com._astype_nansafe(values.ravel(), dtype, copy=True)
+                values = com._astype_nansafe(com.ravel_compat(values), dtype, copy=True)
                 values = values.reshape(self.shape)
 
             newb = make_block(values,
@@ -1295,8 +1303,8 @@ class FloatBlock(FloatOrComplexBlock):
         if slicer is not None:
             values = values[:, slicer]
         mask = isnull(values)
-
         formatter = None
+
         if float_format and decimal != '.':
             formatter = lambda v : (float_format % v).replace('.',decimal,1)
         elif decimal != '.':
@@ -1310,6 +1318,7 @@ class FloatBlock(FloatOrComplexBlock):
             values = np.array(values, dtype='object')
 
         values[mask] = na_rep
+
         if formatter:
             imask = (~mask).ravel()
             values.flat[imask] = np.array(
@@ -1345,7 +1354,7 @@ class ComplexBlock(FloatOrComplexBlock):
         return issubclass(value.dtype.type, np.complexfloating)
 
 
-class IntBlock(NumericBlock):
+class AbstractIntBlock(NumericBlock):
     __slots__ = ()
     is_integer = True
     _can_hold_na = False
@@ -1366,8 +1375,71 @@ class IntBlock(NumericBlock):
     def should_store(self, value):
         return com.is_integer_dtype(value) and value.dtype == self.dtype
 
+class IntDefaultBlock(AbstractIntBlock):
+    __slots__ = ()
 
-class TimeDeltaBlock(IntBlock):
+IntBlock = IntDefaultBlock
+
+class IntNABlock(AbstractIntBlock):
+    __slots__ = ()
+    _can_hold_na = True
+
+    def __init__(self, values, **kwargs):
+        super(IntNABlock, self).__init__(com.as_nd(values), **kwargs)
+
+    @property
+    def dtype(self):
+        return self.values.dtype
+
+    def view(self):
+        """ return a view on my values """
+        return nd.view(self.values)
+
+    def to_dense(self):
+        """ return my densse repr """
+        return nd.view(self.values)
+
+    def _slice(self, slicer):
+        """ return a slice of my values """
+
+        #### TODO could use fancy indexing here
+        if isinstance(slicer, slice):
+            slicer = nd.range(len(self.values),dtype='int64')[slicer]
+        return nd.take(self.values, slicer)
+
+    def _can_hold_element(self, element):
+        if is_list_like(element):
+            element = np.array(element)
+            tipo = element.dtype.type
+            return (issubclass(tipo, np.integer) and not issubclass(tipo, (np.datetime64, np.timedelta64)) or
+                    isnull(element))
+        return com.is_integer(element) or isnull(element)
+
+    def _try_coerce_args(self, values, other):
+        """ provide coercion to our input arguments
+            we want type compat for an integer NA, meaning nulls -> None """
+        if is_array_type(other):
+
+            mask = isnull(other)
+            other[mask] = None
+
+        elif isnull(other):
+
+            # scalar
+            other = None
+
+        return values, other
+
+    def _try_cast(self, element):
+        try:
+            return int(element)
+        except:  # pragma: no cover
+            return element
+
+    def should_store(self, value):
+        return isnull(value) or (com.is_integer_dtype(value) and value.dtype == self.dtype)
+
+class TimeDeltaBlock(AbstractIntBlock):
     __slots__ = ()
     is_timedelta = True
     _can_hold_na = True
@@ -2260,7 +2332,7 @@ def make_block(values, placement, klass=None, ndim=None,
                dtype=None, fastpath=False):
     if klass is None:
         dtype = dtype or values.dtype
-        vtype = dtype.type
+        vtype = com.dtype_compat(dtype)
 
         if isinstance(values, SparseArray):
             klass = SparseBlock
@@ -3674,7 +3746,7 @@ class SingleBlockManager(BlockManager):
 
     def get_values(self):
         """ return a dense type view """
-        return np.array(self._block.to_dense(),copy=False)
+        return com.ndarray_compat(self._block.to_dense(), copy=False)
 
     @property
     def itemsize(self):
@@ -3783,14 +3855,17 @@ def form_blocks(arrays, names, axes):
 
         k = names[name_idx]
         v = arrays[name_idx]
+        dtype = v.dtype
 
-        if is_sparse(v):
+        if com.is_ndt_type(dtype) and is_integer_dtype(dtype):
+            int_items.append((i, k, v))
+        elif is_sparse(v):
             sparse_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.floating):
+        elif issubclass(dtype.type, np.floating):
             float_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.complexfloating):
+        elif issubclass(dtype.type, np.complexfloating):
             complex_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.datetime64):
+        elif issubclass(dtype.type, np.datetime64):
             if v.dtype != _NS_DTYPE:
                 v = tslib.cast_to_nanoseconds(v)
 
@@ -3943,7 +4018,7 @@ def _stack_arrays(tuples, dtype):
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)
 
-    stacked = np.empty(shape, dtype=dtype)
+    stacked = com.empty_compat(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
         stacked[i] = _asarray_compat(arr)
 

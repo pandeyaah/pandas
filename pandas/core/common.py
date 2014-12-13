@@ -165,7 +165,7 @@ def _isnull_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, pd.MultiIndex):
         raise NotImplementedError("isnull is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, pd.Index)):
+    elif isinstance(obj, (ABCSeries, pd.Index)) or is_array_type(obj):
         return _isnull_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isnull(func=isnull))
@@ -251,6 +251,9 @@ def _isnull_ndarraylike(obj):
                 result = np.empty(shape, dtype=bool)
                 vec = lib.isnullobj(values.ravel())
                 result[...] = vec.reshape(shape)
+    elif hasattr(dtype,'dshape'):
+        # dynd type
+        result = isnull_compat(values)
 
     elif is_datetimelike(obj):
         # this is the NaT pattern
@@ -364,8 +367,10 @@ def array_equivalent(left, right, strict_nan=False):
     False
     """
 
-    left, right = np.asarray(left), np.asarray(right)
+    left, right = asarray_compat(left), asarray_compat(right)
     if left.shape != right.shape: return False
+
+    left, right = as_numpy(left, errors='coerce'), as_numpy(right, errors='coerce')
 
     # Object arrays can contain None, NaN and NaT.
     if issubclass(left.dtype.type, np.object_) or issubclass(right.dtype.type, np.object_):
@@ -1932,7 +1937,7 @@ def _possibly_castable(arr):
     if kind == 'M' or kind == 'm':
         return arr.dtype in _DATELIKE_DTYPES
 
-    return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
+    return dtype_name_compat(arr.dtype) not in _POSSIBLY_CAST_DTYPES
 
 
 def _possibly_convert_platform(values):
@@ -1945,8 +1950,10 @@ def _possibly_convert_platform(values):
             values = values._values
         values = lib.maybe_convert_objects(values)
 
-    return values
+    # cast if we can
+    values = cast_compat(values)
 
+    return values
 
 def _possibly_cast_to_datetime(value, dtype, errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
@@ -2014,9 +2021,12 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
             # we have a non-castable dtype that was passed
             raise TypeError('Cannot cast datetime64 to %s' % dtype)
 
+    elif is_dynd_array_type(value):
+        pass
+
     else:
 
-        is_array = isinstance(value, np.ndarray)
+        is_array = is_array_type(value)
 
         # catch a datetime/timedelta that is not of ns variety
         # and no coercion specified
@@ -2058,7 +2068,6 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
        leave inferred dtype 'date' alone
 
     """
-
     if isinstance(value, (ABCDatetimeIndex, ABCPeriodIndex)):
         return value
     elif isinstance(value, ABCSeries):
@@ -2068,7 +2077,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
     v = value
     if not is_list_like(v):
         v = [v]
-    v = np.array(v,copy=False)
+    v = ndarray_compat(v,copy=False)
     shape = v.shape
     if not v.ndim == 1:
         v = v.ravel()
@@ -2436,6 +2445,29 @@ def is_iterator(obj):
 def is_number(obj):
     return isinstance(obj, (numbers.Number, np.number))
 
+def is_array_type(obj):
+    # numpy or dynd array
+    return isinstance(obj, np.ndarray) or _DYND and isinstance(obj, nd.array)
+
+def is_numpy_array_type(obj):
+    # numpy array only
+    return isinstance(obj, np.ndarray)
+
+def is_dynd_array_type(obj):
+    # dynd array only
+    return _DYND and isinstance(obj, nd.array)
+
+def is_array_view(obj):
+    """ return a boolean if we are an array view """
+    if not is_array_type(obj):
+        obj = obj._values
+    if is_dynd_array_type(obj):
+        ### FIXME ###
+        # would be helpful to actually determine
+        # if we are looking at a view here
+        return True
+    return obj.base is not None
+
 def is_period_arraylike(arr):
     """ return if we are period arraylike / PeriodIndex """
     if isinstance(arr, pd.PeriodIndex):
@@ -2462,7 +2494,13 @@ def _coerce_to_dtype(dtype):
     elif is_datetime64tz_dtype(dtype):
         dtype = DatetimeTZDtype(dtype)
     else:
-        dtype = np.dtype(dtype)
+        try:
+            dtype = np.dtype(dtype)
+        except TypeError:
+            if _DYND:
+                dtype = ndt.type(dtype)
+            else:
+                raise
     return dtype
 
 def _get_dtype(arr_or_dtype):
@@ -2485,8 +2523,14 @@ def _get_dtype(arr_or_dtype):
     return np.dtype(arr_or_dtype)
 
 def _get_dtype_type(arr_or_dtype):
+
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
+    elif is_ndt_type(arr_or_dtype):
+        # return an equiv numpy type
+        # we can't handle option types here
+        # so convert
+        return to_numpy_dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype).type
     elif isinstance(arr_or_dtype, CategoricalDtype):
@@ -2515,6 +2559,8 @@ def is_dtype_equal(source, target):
         # invalid comparison
         # object == category will hit this
         return False
+
+    return dtype_compat(arr_or_dtype)
 
 def is_any_int_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
@@ -2610,16 +2656,19 @@ def is_numeric_dtype(arr_or_dtype):
     return (issubclass(tipo, (np.number, np.bool_))
             and not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
+def is_float_or_integer_dtype(arr_or_dtype):
+    tipo = _get_dtype_type(arr_or_dtype)
+    return issubclass(tipo, np.floating) or \
+           (issubclass(tipo, np.integer) and
+            not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 def is_float_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.floating)
 
-
 def is_floating_dtype(arr_or_dtype):
     tipo = _get_dtype_type(arr_or_dtype)
     return isinstance(tipo, np.floating)
-
 
 def is_bool_dtype(arr_or_dtype):
     try:
@@ -2681,8 +2730,8 @@ def is_re_compilable(obj):
 
 
 def is_list_like(arg):
-     return (hasattr(arg, '__iter__') and
-            not isinstance(arg, compat.string_and_binary_types))
+    return (hasattr(arg, '__iter__') and
+            not isinstance(arg, compat.string_and_binary_types)) or is_array_type(arg)
 
 def is_null_slice(obj):
     """ we have a null slice """
@@ -2768,8 +2817,9 @@ _ensure_object = algos.ensure_object
 def _astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
-    if not isinstance(dtype, np.dtype):
-        dtype = _coerce_to_dtype(dtype)
+    if not is_ndt_type(dtype):
+        if not isinstance(dtype, np.dtype):
+            dtype = _coerce_to_dtype(dtype)
 
     if issubclass(dtype.type, compat.text_type):
         # in Py3 that's str, in Py2 that's unicode
@@ -3418,3 +3468,335 @@ def _random_state(state=None):
         return np.random.RandomState()
     else:
         raise ValueError("random_state must be an integer, a numpy RandomState, or None")
+
+##############
+#### DYND ####
+##############
+_DYND = False
+
+def use_dynd(value, verbose=False):
+    """ enable/disable dynd support if its available """
+    global _DYND
+    if verbose:
+        print("currently in {mode} mode".format("DyND" if _DYND else "numpy"))
+
+    try:
+        import dynd
+        from dynd import ndt, nd
+        _DYND = value
+        lib._DYND = value
+    except ImportError:  # pragma: no cover
+        _DYND = False
+        lib._DYND = False
+
+    # alias the compat function to our support mode
+    # assign the NA or default classes as needed to Ints
+
+    # use dynd
+    if _DYND:
+        if verbose:
+            print("turning on DyND support")
+        inject_dynd_compat()
+
+    # use numpy directly
+    else:
+        if verbose:
+            print("turning on numpy support")
+        inject_numpy_compat()
+
+def inject_dynd_compat():
+    """ inject the dynd compat functions into the namespace """
+
+    from dynd import ndt, nd
+    import datashape
+    from datashape import dshape, from_numpy
+
+    from pandas.core import format, internals
+    format.IntArrayFormatter = format.IntNAArrayFormatter
+    internals.IntBlock = internals.IntNABlock
+
+    def is_ndt_type(arr_or_dtype):
+        """ return if we are the type of ndt """
+        return isinstance(arr_or_dtype, ndt.type)
+
+    def as_numpy(values, dtype=None, errors='raise'):
+        """
+        return a numpy array for the input
+
+        Parameters
+        ----------
+        values : list-like
+        dtype : default None, a resultant dtype (if possible)
+        errors : 'raise' | 'coerce'
+           if not dtype compat, the 'raise' or if 'coerce', give
+           a view coercion
+
+        """
+        assert errors in ['raise','coerce']
+        if is_numpy_array_type(values):
+            return values
+
+        try:
+
+            # we have a provided dtype
+            if dtype is not None:
+                return nd.as_numpy(nd.view(values, dtype))
+
+            return nd.as_numpy(values)
+        except TypeError:
+            if errors == 'raise':
+                raise
+
+            dtype = cast_from_na(nd.dshape_of(values))
+            return nd.as_numpy(nd.view(values, dtype))
+
+    def as_py(values):
+        """
+        return a python list for the input
+        input must be list-like
+        """
+        return nd.as_py(nd.array(values))
+    def empty_compat(shape, dtype=None, **kwargs):
+        if is_ndt_type(dtype):
+            # TOTO
+            # https://github.com/libdynd/libdynd/issues/545
+            return nd.empty(shape, dtype)
+        return np.empty(shape, dtype=dtype, **kwargs)
+    def asarray_compat(values, copy=False, *args, **kwargs):
+        # TODO
+        # https://github.com/libdynd/dynd-python/issues/344
+        if not isinstance(values, nd.array):
+            values = np.array(values, copy=copy, *args, **kwargs)
+        return values
+    def ndarray_compat(values, copy=False, *args, **kwargs):
+        # ignoring copy=
+        # TODO
+        # https://github.com/libdynd/dynd-python/issues/342
+        if isinstance(values, nd.array):
+            values = nd.view(values)
+        else:
+            values = np.array(values, copy=copy, *args, **kwargs)
+        return values
+    def ravel_compat(values, **kwargs):
+        # TODO
+        # https://github.com/libdynd/dynd-python/issues/342
+        if not isinstance(values, nd.array):
+            return values.ravel()
+        return values
+    def view_compat(values, *args, **kwargs):
+        # TODO
+        # https://github.com/libdynd/dynd-python/issues/342
+        if isinstance(values, nd.array):
+            return nd.view(values,*args, **kwargs)
+        return values.view(*args, **kwargs)
+    def copy_compat(values, *args, **kwargs):
+        # TODO, currently just a view!
+        # https://github.com/libdynd/dynd-python/issues/342
+        return nd.view(values)
+    def ops_compat(values, op, axis=None, dtype=None, *args, **kwargs):
+        # TODO, e.g arr.sum(dtype=...)
+        # we are ignoring the accumulator for now
+        # https://github.com/libdynd/dynd-python/issues/360
+        if axis is None:
+            axis = 0
+            return getattr(nd, op)(values)
+        return getattr(nd, op)(values, axis=axis)
+    def size_compat(values):
+        # TODO: size of the array
+        # https://github.com/libdynd/dynd-python/issues/362
+        return len(values)
+    def dtype_itemsize_compat(dtype):
+        # TODO: itemsize
+        # https://github.com/libdynd/dynd-python/issues/361
+        return getattr(dtype,'itemsize',dtype.data_size)
+    def dtype_name_compat(dtype):
+        # TODO: name
+        # https://github.com/libdynd/dynd-python/issues/361
+        return getattr(dtype,'name',str(dtype))
+    def dtype_compat(arr_or_dtype):
+        """ given a type-like, return a numpy dtype """
+
+        arr_or_dtype = getattr(arr_or_dtype,'dtype',arr_or_dtype)
+
+        # coerce to a datashape type and then to a numpy dtype
+        # this will lose the option from the datashape
+        if hasattr(arr_or_dtype,'dshape'):
+            arr_or_dtype = to_numpy_dtype(arr_or_dtype)
+
+        return getattr(arr_or_dtype,'type',type(arr_or_dtype))
+    def cast_compat(values, dtype=None, copy=False, errors=None):
+        """ we have a ndarray, cast to a dynd type of needed/can """
+        try:
+            if (dtype is not None and is_float_or_integer_dtype(dtype)) or is_float_or_integer_dtype(nd.array(values).dtype):
+                values = as_nd(values, dtype)
+
+                # if we actually have a float (or ?float) type, then coerce
+                if is_float_dtype(values.dtype):
+                    values = as_numpy(values, errors='coerce')
+
+        except TypeError:
+            pass
+
+        return values
+
+    # inject
+    globals().update(locals())
+
+def inject_numpy_compat():
+    """ inject the numpy compat functions into the namespace """
+
+    from pandas.core import format, internals
+    format.IntArrayFormatter = format.IntDefaultArrayFormatter
+    internals.IntBlock = internals.IntDefaultBlock
+
+    def is_ndt_type(arr_or_dtype):
+        """ return if we are the type of ndt """
+        return False
+
+    def as_numpy(values, errors='raise'):
+        """
+        return a numpy array for the input
+        input must be list-like
+        """
+        return np.array(values,copy=False)
+    def as_py(values):
+        """
+        return a python list for the input
+        input must be list-like
+        """
+        return list(values)
+    def empty_compat(shape, dtype=None, **kwargs):
+        return np.empty(shape, dtype=dtype, **kwargs)
+    def asarray_compat(values, *args, **kwargs):
+        return np.asarray(values, *args, **kwargs)
+    def ndarray_compat(values, *args, **kwargs):
+        return np.array(values, *args, **kwargs)
+    def ravel_compat(values, **kwargs):
+        return values.ravel(**kwargs)
+    def view_compat(values, *args, **kwargs):
+        return np.view(values,*args, **kwargs)
+    def copy_compat(values, *args, **kwargs):
+        return values.copy(*args, **kwargs)
+    def ops_compat(values, op, *args, **kwargs):
+        return getattr(values, op)(*args, **kwargs)
+    def size_compat(values):
+        return values.size
+    def dtype_itemsize_compat(dtype):
+        return dtype.itemsize
+    def dtype_name_compat(dtype):
+        return dtype.name
+    def dtype_compat(arr_or_dtype):
+        """ given a type-like, return a numpy dtype """
+        arr_or_dtype = getattr(arr_or_dtype,'dtype',arr_or_dtype)
+        return getattr(arr_or_dtype,'type',type(arr_or_dtype))
+    def cast_compat(values, dtype=None, copy=False, errors=None):
+        """
+        we are already a ndarray, so a no-op
+        unless we are passed errors, in which case need to raise
+        """
+        if errors is not None:
+            raise errors
+        return values
+
+    # inject
+    globals().update(locals())
+
+to_numpy_dtype = lib.to_numpy_dtype
+
+def isnull_compat(values):
+    """ return a boolean numpy array of the isnull for this nd array """
+
+    # TODO
+    # https://github.com/libdynd/dynd-python/issues/349
+    if not is_dynd_array_type(values):
+        return isnull(values)
+
+    dtype = cast_from_na(values.dtype)
+    s = as_numpy(values, dtype, errors='coerce')
+    return s == as_numpy(nd.array(None, "?{0}".format(str(dtype))), dtype)
+
+def cast_to_na(dtype):
+    """
+    return a new ndt for the requested na casting
+    convert ?void -> ?int
+    convert floats -> ?int
+    convert int -> ?int
+
+    Parameters
+    ----------
+    t : a ndt type object
+
+    """
+    assert dtype is not None
+    dtype = str(dtype)
+    if '?' in dtype:
+        dtype = re.sub('\?','',dtype)
+    return ndt.type(re.sub("(int|float|\?void)(\d*)$","?int\g<2>",str(dtype)))
+
+
+def cast_from_na(dtype):
+    """
+    return a new ndt for the requested with na types zonked
+
+    Parameters
+    ----------
+    t : a ndt type object
+
+    """
+    return ndt.type(re.sub("\?","",str(dtype)))
+
+
+def as_nd(values, dtype=None):
+    """
+    coerce to a nd.array
+    keep the dtype as similar as possible
+
+    cast to a na type if possible
+    cast to int if possible
+
+    Parameters
+    ----------
+    values : a ndarray/nd array
+    dtype : a resultant dtype (if possible)
+
+    """
+    if not isinstance(type(values), nd.array):
+
+        # we could be trying to cast floats/ints, but if we have a provided
+        # non-integer dtype then we want to make sure that we have a numpy
+        # array
+        if is_float_dtype(dtype):
+
+            # TODO: we should actually be substituting the dtype here
+            # and casting
+            return as_numpy(values, cast_from_na(nd.dshape_of(values)))
+
+        # dynd tries to cast np.nan and raises
+        new_values = None
+        try:
+            if dtype is not None:
+                dt = cast_to_na(dtype)
+                new_values = nd.array(values, dtype=dt)
+        except RuntimeError:
+            pass
+
+        if new_values is None:
+            new_values = nd.array(values)
+
+        # don't cast floats
+        # that are not integer castable (with or w/o na)
+        try:
+            new_values = new_values.cast(cast_to_na(nd.dshape_of(new_values))).eval()
+            values = new_values
+        except:
+            pass
+
+        # we may need to cast to the provided dtype
+        if dtype is not None:
+            try:
+                if is_float_or_integer_dtype(new_values.dtype) and not is_float_or_integer_dtype(dtype):
+                    raise ValueError("cannot cast the data to {dtype}".format(dtype=dtype))
+            except TypeError:
+                pass
+
+    return values

@@ -130,7 +130,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     from pandas.core.index import Index
     from pandas.core.series import Series
-    vals = np.asarray(values)
+    vals = com.as_numpy(com.asarray_compat(values), errors='coerce')
 
     is_datetime = com.is_datetime64_dtype(vals)
     is_timedelta = com.is_timedelta64_dtype(vals)

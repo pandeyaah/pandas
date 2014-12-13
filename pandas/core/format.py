@@ -178,12 +178,19 @@ class SeriesFormatter(object):
                 footer += ', '
             footer += 'Length: %d' % len(self.series)
 
+        # TODO: in tidy_repr, with freq index, no dtype is shown -> also include a guard here?
         if self.dtype is not False and self.dtype is not None:
-            name = getattr(self.tr_series.dtype, 'name', None)
-            if name:
+            dtype = self.tr_series.dtype
+
+            # we want to display the numpy-like dtypes
+            if com.is_ndt_type(dtype):
+                dtype = com.to_numpy_dtype(dtype)
+            dtype = getattr(dtype, 'name', None)
+
+            if dtype:
                 if footer:
                     footer += ', '
-                footer += 'dtype: %s' % com.pprint_thing(name)
+                footer += 'dtype: %s' % com.pprint_thing(dtype)
 
         # level infos are added to the end and in a new line, like it is done for Categoricals
         if com.is_categorical_dtype(self.tr_series.dtype):
@@ -2056,13 +2063,27 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return fmt_values
 
 
-class IntArrayFormatter(GenericArrayFormatter):
+class IntDefaultArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
         formatter = self.formatter or (lambda x: '% d' % x)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
+IntArrayFormatter = IntDefaultArrayFormatter
 
+class IntNAArrayFormatter(GenericArrayFormatter):
+
+    def _format_strings(self):
+
+        #### FIXME: once dynd supports boolean indexing, we can directly
+        # support this
+        nulls = com.isnull_compat(self.values)
+        values = com.as_py(self.values)
+        formatter = self.formatter or (lambda x: '% s' % x)
+        fmt_values = np.array([formatter(x) for x in values])
+        fmt_values[nulls] = formatter(self.na_rep)
+
+        return fmt_values
 
 class Datetime64Formatter(GenericArrayFormatter):
     def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):

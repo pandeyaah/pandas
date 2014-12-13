@@ -606,6 +606,10 @@ class TestNanops(tm.TestCase):
 
     def test_nansum_buglet(self):
         s = Series([1.0, np.nan], index=[0, 1])
+
+        self.assertEqual(s.sum(), 1)
+        self.assertTrue(np.isnan(s.sum(skipna=False)))
+
         result = np.nansum(s)
         assert_almost_equal(result, 1)
 

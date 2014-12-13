@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
 import pandas.hashtable as _hash
 from pandas import compat, lib, algos, tslib
 from pandas.compat import builtins
+from pandas.core import common as com
 from pandas.core.common import (isnull, notnull, _values_from_object,
                                 _maybe_upcast_putmask,
                                 ensure_float, _ensure_float64,
@@ -22,8 +23,7 @@ from pandas.core.common import (isnull, notnull, _values_from_object,
                                 is_datetime64_dtype, is_timedelta64_dtype,
                                 is_datetime_or_timedelta_dtype, _get_dtype,
                                 is_int_or_datetime_dtype, is_any_int_dtype,
-                                _int64_max)
-
+                                _int64_max, to_numpy_dtype)
 
 class disallow(object):
 
@@ -32,7 +32,7 @@ class disallow(object):
         self.dtypes = tuple(np.dtype(dtype).type for dtype in dtypes)
 
     def check(self, obj):
-        return hasattr(obj, 'dtype') and issubclass(obj.dtype.type,
+        return hasattr(obj, 'dtype') and issubclass(to_numpy_dtype(obj.dtype).type,
                                                     self.dtypes)
 
     def __call__(self, f):
@@ -77,7 +77,7 @@ class bottleneck_switch(object):
                     if k not in kwds:
                         kwds[k] = v
             try:
-                if self.zero_value is not None and values.size == 0:
+                if self.zero_value is not None and com.size_compat(values) == 0:
                     if values.ndim == 1:
 
                         # wrap the 0's if needed
@@ -127,7 +127,7 @@ def _bn_ok_dtype(dt, name):
         # bottleneck does not properly upcast during the sum
         # so can overflow
         if name == 'nansum':
-            if dt.itemsize < 8:
+            if com.dtype_itemsize_compat(dt) < 8:
                 return False
 
         return True
@@ -191,7 +191,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
     if skipna:
         if copy:
-            values = values.copy()
+            values = com.copy_compat(values)
         if dtype_ok:
             np.putmask(values, mask, fill_value)
 
@@ -200,7 +200,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
             values, changed = _maybe_upcast_putmask(values, mask, fill_value)
 
     elif copy:
-        values = values.copy()
+        values = com.copy_compat(values)
 
     values = _view_if_needed(values)
 
@@ -274,7 +274,7 @@ def nansum(values, axis=None, skipna=True):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
-    the_sum = values.sum(axis, dtype=dtype_sum)
+    the_sum = com.ops_compat(values, 'sum', axis=axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask)
 
     return _wrap_results(the_sum, dtype)

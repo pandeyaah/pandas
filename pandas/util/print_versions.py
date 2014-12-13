@@ -65,6 +65,8 @@ def show_versions(as_json=False):
         ("setuptools", lambda mod: mod.__version__),
         ("Cython", lambda mod: mod.__version__),
         ("numpy", lambda mod: mod.version.version),
+        ("dynd", lambda mod: "{dynd} [{libdynd}]".format(dynd=mod.__version__,
+                                                         libdynd=mod.__libdynd_version__)),
         ("scipy", lambda mod: mod.version.version),
         ("statsmodels", lambda mod: mod.__version__),
         ("IPython", lambda mod: mod.__version__),

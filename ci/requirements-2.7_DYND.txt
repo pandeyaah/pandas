@@ -1,0 +1,9 @@
+dateutil
+pytz
+numpy
+cython
+numexpr
+bottleneck
+datashape
+libdynd
+dynd-python

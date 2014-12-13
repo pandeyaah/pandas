@@ -30,14 +30,24 @@ _TYPE_MAP = {
     'int16': 'integer',
     'int32': 'integer',
     'int64': 'integer',
+    '?int8': 'integer',
+    '?int16': 'integer',
+    '?int32': 'integer',
+    '?int64': 'integer',
     'i' : 'integer',
     'uint8': 'integer',
     'uint16': 'integer',
     'uint32': 'integer',
     'uint64': 'integer',
+    '?uint8': 'integer',
+    '?uint16': 'integer',
+    '?uint32': 'integer',
+    '?uint64': 'integer',
     'u' : 'integer',
     'float32': 'floating',
     'float64': 'floating',
+    '?float32': 'floating',
+    '?float64': 'floating',
     'f' : 'floating',
     'complex128': 'complex',
     'c' : 'complex',
@@ -74,7 +84,11 @@ cdef _try_infer_map(v):
     """ if its in our map, just return the dtype """
     cdef:
         object attr, val
-    for attr in ['name','kind','base']:
+
+    val = getattr(v.dtype,'name',getattr(v.dtype,'dshape',None))
+    if val in _TYPE_MAP:
+        return _TYPE_MAP[val]
+    for attr in ['kind','base']:
         val = getattr(v.dtype,attr)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]

@@ -221,6 +221,7 @@ class TestCategorical(tm.TestCase):
 
         # Scalars should be converted to lists
         cat = pd.Categorical(1)
+        str(cat)
         self.assertTrue(len(cat.categories) == 1)
         self.assertTrue(cat.categories[0] == 1)
         self.assertTrue(len(cat.codes) == 1)

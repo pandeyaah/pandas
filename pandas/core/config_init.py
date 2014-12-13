@@ -330,6 +330,20 @@ with cf.config_prefix('mode'):
                        validator=is_one_of_factory([None, 'warn', 'raise']))
 
 
+# dynd support
+dynd_support = """
+: boolean
+    Use DyND if available
+"""
+
+def use_dynd(key):
+    from pandas.core.common import use_dynd
+    use_dynd(cf.get_option(key))
+
+with cf.config_prefix('support'):
+    cf.register_option('dynd', True, dynd_support, cb=use_dynd)
+    use_dynd('dynd')
+
 # Set up the io.excel specific configuration.
 writer_engine_doc = """
 : string

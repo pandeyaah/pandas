@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.common import isnull, array_equivalent
+from pandas.core.common import isnull, is_array_type, is_dynd_array_type, array_equivalent
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -25,7 +25,7 @@ cdef bint is_comparable_as_number(obj):
     return isinstance(obj, NUMERIC_TYPES)
 
 cdef bint isiterable(obj):
-    return hasattr(obj, '__iter__')
+    return hasattr(obj, '__iter__') or is_dynd_array_type(obj)
 
 cdef bint has_length(obj):
     return hasattr(obj, '__len__')
@@ -119,6 +119,12 @@ cpdef assert_almost_equal(a, b, bint check_less_precise=False,
                 from pandas.util.testing import raise_assert_detail
                 raise_assert_detail(obj, '{0} shapes are different'.format(obj),
                                     a.shape, b.shape)
+
+        na, nb = len(a), len(b)
+        assert na == nb, (
+            "Length of two iterators not the same: %r != %r" % (na, nb)
+        )
+        if is_array_type(a) and is_array_type(b):
             try:
                 if array_equivalent(a, b, strict_nan=True):
                     return True

@@ -17,7 +17,7 @@ import numpy as np
 
 cimport tslib
 from hashtable cimport *
-from pandas import algos, tslib, hashtable as _hash
+from pandas import algos, tslib, hashtable as _hash, lib
 from pandas.tslib import Timestamp, Timedelta
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
@@ -100,22 +100,25 @@ cdef class IndexEngine:
         hash(val)
         return val in self.mapping
 
-    cpdef get_value(self, ndarray arr, object key):
+    cpdef get_value(self, object arr, object key):
         '''
-        arr : 1-dimensional ndarray
+        arr : 1-dimensional ndarray / ndt.array
         '''
         cdef:
-            object loc
+            object loc, dtype
             void* data_ptr
 
         loc = self.get_loc(key)
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             return arr[loc]
         else:
-            if arr.descr.type_num == NPY_DATETIME:
+            dtype = lib.to_numpy_dtype(arr.dtype)
+            if dtype.num == NPY_DATETIME:
                 return Timestamp(util.get_value_at(arr, loc))
-            elif arr.descr.type_num == NPY_TIMEDELTA:
+            elif dtype.num == NPY_TIMEDELTA:
                 return Timedelta(util.get_value_at(arr, loc))
+            if lib._DYND:
+                return lib.item_from_zerodim(arr[loc])
             return util.get_value_at(arr, loc)
 
     cpdef set_value(self, ndarray arr, object key, object value):
