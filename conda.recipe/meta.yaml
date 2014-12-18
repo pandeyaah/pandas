@@ -1,0 +1,38 @@
+package:
+  name: pandas
+  version: "0.15.2"
+
+build:
+    number: {{environ.get('BINSTAR_BUILD', 1)}}
+
+requirements:
+  build:
+    - python
+    - cython
+    - libpython [win]
+    - numpy
+    - dateutil
+    - pytz
+    - setuptools
+    - nose
+
+  run:
+    - python
+    - numpy
+    - libpython
+    - dateutil
+    - pytz
+    - setuptools
+    - nose
+
+test:
+  requires:
+    - nose
+    - coverage
+
+  commands:
+    - python -c "import pandas"
+
+about:
+  home: http://pandas.pydata.org
+  license: BSD
