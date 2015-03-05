@@ -2986,25 +2986,22 @@ col1~~~~~col2  col3++++++++++++++++++col4
 
     def test_convert_to_nd_arrays(self):
         #GH 9266
-        with open('test.txt','w') as f:
-            f.write(
-                """1421302964.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127 \n"""
-            +   """1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""
-                )
-        try:
-            pd.read_fwf('test.txt', colspecs=[(0,17),(25,26),(33,37),(49,51),(58,62),(63,1000)],
-                      names=['time','pri','pgn','dst','src','data'],
-                      converters={'pgn':lambda x: int(x,16),
-                                  'src':lambda x: int(x,16),
-                                  'dst':lambda x: int(x,16),
-                                  'data':lambda x: len(x.split(' '))},
-                                   index_col='time')
-        except AttributeError:
-              self.assertIn('Error with read_fwf function.')
+        test = """
+1421302964.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71
+"""
 
-            
-            
-            
+        result = pd.read_fwf(StringIO(test),
+                             header=False,
+                             colspecs=[(0,17),(25,26),(33,37),(49,51),(58,62),(63,1000)],
+                             names=['time','pri','pgn','dst','src','data'],
+                             converters={'pgn':lambda x: int(x,16),
+                                         'src':lambda x: int(x,16),
+                                         'dst':lambda x: int(x,16),
+                                         'data':lambda x: len(x.split(' '))},
+                             index_col='time')
+
+
 
 
 class TestCParserHighMemory(ParserTests, tm.TestCase):
@@ -3090,17 +3087,17 @@ A,B,C
         expected = pd.DataFrame([['2007/01/01', '01:00', 0.2140, 'U', 'M'],
                                  ['2007/01/01', '02:00', 0.2141, 'M', 'O'],
                                  ['2007/01/01', '04:00', 0.2142, 'D', 'M']],
-                                columns=['date', 'time', 'var', 'flag', 
+                                columns=['date', 'time', 'var', 'flag',
                                          'oflag'])
         # test with the three default lineterminators LF, CR and CRLF
         df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r')), 
+        df = self.read_csv(StringIO(data.replace('\n', '\r')),
                            skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
-        df = self.read_csv(StringIO(data.replace('\n', '\r\n')), 
+        df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
                            skiprows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
