@@ -196,7 +196,8 @@ Consider a typical CSV file containing, in this case, some time series data:
 
 .. ipython:: python
 
-   print(open('foo.csv').read())
+   with open('foo.csv') as fh:
+      print(fh.read())
 
 The default for `read_csv` is to create a DataFrame with simple numbered rows:
 
@@ -485,7 +486,8 @@ column names:
 
 .. ipython:: python
 
-    print(open('tmp.csv').read())
+    with open('tmp.csv') as fh:
+        print(fh.read())
     df = pd.read_csv('tmp.csv', header=None, parse_dates=[[1, 2], [1, 3]])
     df
 
@@ -666,7 +668,8 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
 .. ipython:: python
 
-   print(open('tmp.csv').read())
+   with open('tmp.csv') as fh:
+       print(fh.read())
 
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
@@ -694,7 +697,8 @@ By default, numbers with a thousands separator will be parsed as strings
 
 .. ipython:: python
 
-    print(open('tmp.csv').read())
+    with open('tmp.csv') as fh:
+       print(fh.read())
     df = pd.read_csv('tmp.csv', sep='|')
     df
 
@@ -704,7 +708,8 @@ The ``thousands`` keyword allows integers to be parsed correctly
 
 .. ipython:: python
 
-    print(open('tmp.csv').read())
+    with open(open('tmp.csv') as fh:
+        print(fh.read())
     df = pd.read_csv('tmp.csv', sep='|', thousands=',')
     df
 
@@ -781,7 +786,8 @@ Sometimes comments or meta data may be included in a file:
 
 .. ipython:: python
 
-   print(open('tmp.csv').read())
+   with open('tmp.csv') as fh:
+       print(fh.read())
 
 By default, the parse includes the comments in the output:
 
@@ -821,7 +827,8 @@ as a ``Series``:
 
 .. ipython:: python
 
-   print(open('tmp.csv').read())
+   with open('tmp.csv') as fh:
+       print(fh.read())
 
    output =  pd.read_csv('tmp.csv', squeeze=True)
    output
@@ -933,7 +940,8 @@ Consider a typical fixed-width data file:
 
 .. ipython:: python
 
-   print(open('bar.csv').read())
+   with open('bar.csv') as fh:
+       print(fh.read())
 
 In order to parse this file into a DataFrame, we simply need to supply the
 column specifications to the `read_fwf` function along with the file name:
@@ -991,7 +999,8 @@ column:
 
 .. ipython:: python
 
-   print(open('foo.csv').read())
+   with open('foo.csv') as fh:
+       print(fh.read())
 
 In this special case, ``read_csv`` assumes that the first column is to be used
 as the index of the DataFrame:
@@ -1023,7 +1032,8 @@ Suppose you have data indexed by two columns:
 
 .. ipython:: python
 
-   print(open('data/mindex_ex.csv').read())
+   with open('data/mindex_ex.csv') as fh:
+       print(fh.read())
 
 The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
@@ -1050,7 +1060,8 @@ of tupleizing columns, specify ``tupleize_cols=True``.
    from pandas.util.testing import makeCustomDataframe as mkdf
    df = mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
    df.to_csv('mi.csv')
-   print(open('mi.csv').read())
+   with open('mi.csv') as fh:
+       print(fh.read())
    pd.read_csv('mi.csv',header=[0,1,2,3],index_col=[0,1])
 
 Starting in 0.13.0, ``read_csv`` will be able to interpret a more common format
@@ -1066,7 +1077,8 @@ of multi-columns indices.
 
 .. ipython:: python
 
-   print(open('mi2.csv').read())
+   with open('mi2.csv') as fh:
+       print(fh.read())
    pd.read_csv('mi2.csv',header=[0,1],index_col=0)
 
 Note: If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
@@ -1097,8 +1109,9 @@ class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
-    print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv', sep=None)
+    with open('tmp2.sv') as fh:
+       print(fh.read())
+    pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.chunking:
 
@@ -1111,7 +1124,8 @@ rather than reading the entire file into memory, such as the following:
 
 .. ipython:: python
 
-   print(open('tmp.sv').read())
+   with open('tmp.sv') as fh:
+      print(fh.read())
    table = pd.read_table('tmp.sv', sep='|')
    table
 
@@ -1127,7 +1141,6 @@ value will be an iterable object of type ``TextFileReader``:
    for chunk in reader:
        print(chunk)
 
-
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
@@ -1138,6 +1151,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 .. ipython:: python
    :suppress:
 
+   reader = None
    os.remove('tmp.sv')
    os.remove('tmp2.sv')
 
