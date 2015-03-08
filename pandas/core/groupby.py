@@ -199,18 +199,24 @@ class Grouper(object):
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
+    def __init__(self, key=None, level=None, freq=None, axis=0, sort=None):
         self.key=key
         self.level=level
         self.freq=freq
         self.axis=axis
-        self.sort=sort
+        self._sort=sort
 
         self.grouper=None
         self.obj=None
         self.indexer=None
         self.binner=None
         self.grouper=None
+
+    @property
+    def sort(self):
+        if self._sort is None:
+            return True
+        return self._sort
 
     @property
     def ax(self):
@@ -233,7 +239,7 @@ class Grouper(object):
                                                           level=self.level, sort=self.sort)
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj, sort=False):
+    def _set_grouper(self, obj, sort=None):
         """
         given an object and the specifcations, setup the internal grouper for this particular specification
 
@@ -359,7 +365,7 @@ class GroupBy(PandasObject):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False):
+                 sort=None, group_keys=True, squeeze=False):
         self._selection = selection
 
         if isinstance(obj, NDFrame):
@@ -375,7 +381,7 @@ class GroupBy(PandasObject):
 
         self.as_index = as_index
         self.keys = keys
-        self.sort = sort
+        self._sort = sort
         self.group_keys = group_keys
         self.squeeze = squeeze
 
@@ -387,6 +393,12 @@ class GroupBy(PandasObject):
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
+
+    @property
+    def sort(self):
+        if self._sort is None:
+            return True
+        return self._sort
 
     def __len__(self):
         return len(self.indices)
@@ -1214,10 +1226,16 @@ class BaseGrouper(object):
     This is an internal Grouper class, which actually holds the generated groups
     """
 
-    def __init__(self, axis, groupings, sort=True, group_keys=True):
+    def __init__(self, axis, groupings, sort=None, group_keys=True):
         self._filter_empty_groups = self.compressed = len(groupings) != 1
-        self.axis, self.groupings, self.sort, self.group_keys = \
+        self.axis, self.groupings, self._sort, self.group_keys = \
                 axis, groupings, sort, group_keys
+
+    @property
+    def sort(self):
+        if self._sort is None:
+            return True
+        return self._sort
 
     @property
     def shape(self):
@@ -1857,13 +1875,13 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, in_axis=False):
+                 sort=None, in_axis=False):
 
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
         self.index = index
-        self.sort = sort
+        self._sort = sort
         self.obj = obj
         self.in_axis = in_axis
 
@@ -1926,7 +1944,7 @@ class Grouping(object):
 
                 # must have an ordered categorical
                 if self.sort:
-                    if not self.grouper.ordered:
+                    if self._sort and not self.grouper.ordered:
                         raise ValueError("cannot sort by an unordered Categorical in the grouper\n"
                                          "you can set sort=False in the groupby expression or\n"
                                          "make the categorical ordered by using .set_ordered(True)\n")
@@ -1971,6 +1989,12 @@ class Grouping(object):
             elif is_timedelta64_dtype(self.grouper):
                 from pandas import to_timedelta
                 self.grouper = to_timedelta(self.grouper)
+
+    @property
+    def sort(self):
+        if self._sort is None:
+            return True
+        return self._sort
 
     def __repr__(self):
         return 'Grouping(%s)' % self.name

@@ -4756,7 +4756,9 @@ class TestGroupBy(tm.TestCase):
 
     def test_tab_completion(self):
         grp = self.mframe.groupby(level='second')
-        results = set([v for v in dir(grp) if not v.startswith('_')])
+
+        # sort is an accessor here
+        results = set([v for v in dir(grp) if not v.startswith('_')])-set(['sort'])
         expected = set(['A','B','C',
             'agg','aggregate','apply','boxplot','filter','first','get_group',
             'groups','hist','indices','last','max','mean','median',

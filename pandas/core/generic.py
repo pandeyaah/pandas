@@ -2861,7 +2861,7 @@ class NDFrame(PandasObject):
 
         return self.where((self >= threshold) | isnull(self), threshold)
 
-    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
+    def groupby(self, by=None, axis=0, level=None, as_index=True, sort=None,
                 group_keys=True, squeeze=False):
         """
         Group series using mapper (dict or key function, apply given function
