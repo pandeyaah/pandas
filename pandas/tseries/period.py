@@ -387,7 +387,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     qyear = _field_accessor('qyear', 1)
     days_in_month = _field_accessor('days_in_month', 11, "The number of days in the month")
     daysinmonth = days_in_month
-    
+
     def _get_object_array(self):
         freq = self.freq
         return np.array([ Period._from_ordinal(ordinal=x, freq=freq) for x in self.values], copy=False)
@@ -696,10 +696,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         self.freq = getattr(obj, 'freq', None)
         self.name = getattr(obj, 'name', None)
         self._reset_identity()
-
-    def _format_footer(self):
-        tagline = 'Length: %d, Freq: %s'
-        return tagline % (len(self), self.freqstr)
 
     def take(self, indices, axis=None):
         """
