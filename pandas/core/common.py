@@ -3132,7 +3132,7 @@ def in_ipython_frontend():
 #    working with straight ascii.
 
 
-def _pprint_seq(seq, _nest_lvl=0, **kwds):
+def _pprint_seq(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -3144,7 +3144,10 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     else:
         fmt = u("[%s]") if hasattr(seq, '__setitem__') else u("(%s)")
 
-    nitems = get_option("max_seq_items") or len(seq)
+    if max_seq_items is False:
+        nitems = len(seq)
+    else:
+        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     s = iter(seq)
     r = []
@@ -3160,7 +3163,7 @@ def _pprint_seq(seq, _nest_lvl=0, **kwds):
     return fmt % body
 
 
-def _pprint_dict(seq, _nest_lvl=0, **kwds):
+def _pprint_dict(seq, _nest_lvl=0, max_seq_items=None, **kwds):
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
     rather then calling this directly.
@@ -3170,7 +3173,10 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
 
     pfmt = u("%s: %s")
 
-    nitems = get_option("max_seq_items") or len(seq)
+    if max_seq_items is False:
+        nitems = len(seq)
+    else:
+        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
         pairs.append(pfmt % (pprint_thing(k, _nest_lvl + 1, **kwds),
@@ -3183,7 +3189,7 @@ def _pprint_dict(seq, _nest_lvl=0, **kwds):
 
 
 def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
-                 quote_strings=False):
+                 quote_strings=False, max_seq_items=None):
     """
     This function is the sanctioned way of converting objects
     to a unicode representation.
@@ -3202,6 +3208,8 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
         replacements
     default_escapes : bool, default False
         Whether the input escape characters replaces or adds to the defaults
+    max_seq_items : False, int, default None
+        Pass thru to other pretty printers to limit sequence printing
 
     Returns
     -------
@@ -3244,7 +3252,7 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
     elif is_sequence(thing) and _nest_lvl < \
             get_option("display.pprint_nest_depth"):
         result = _pprint_seq(thing, _nest_lvl, escape_chars=escape_chars,
-                             quote_strings=quote_strings)
+                             quote_strings=quote_strings, max_seq_items=max_seq_items)
     elif isinstance(thing, compat.string_types) and quote_strings:
         if compat.PY3:
             fmt = "'%s'"

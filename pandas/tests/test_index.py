@@ -133,28 +133,6 @@ class Base(object):
         self.assertTrue("'foo'" in str(idx))
         self.assertTrue(idx.__class__.__name__ in str(idx))
 
-class TestIndex(Base, tm.TestCase):
-    _holder = Index
-    _multiprocess_can_split_ = True
-
-    def setUp(self):
-        self.indices = dict(
-            unicodeIndex = tm.makeUnicodeIndex(100),
-            strIndex = tm.makeStringIndex(100),
-            dateIndex = tm.makeDateIndex(100),
-            intIndex = tm.makeIntIndex(100),
-            floatIndex = tm.makeFloatIndex(100),
-            boolIndex = Index([True,False]),
-            empty = Index([]),
-            tuples = MultiIndex.from_tuples(lzip(['foo', 'bar', 'baz'],
-                                                 [1, 2, 3]))
-        )
-        for name, ind in self.indices.items():
-            setattr(self, name, ind)
-
-    def create_index(self):
-        return Index(list('abcde'))
-
     def test_wrong_number_names(self):
         def testit(ind):
             ind.names = ["apple", "banana", "carrot"]
