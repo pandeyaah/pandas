@@ -482,6 +482,9 @@ class Index(IndexOpsMixin, PandasObject):
         if self.name is not None:
             attrs.append(('name',default_pprint(self.name)))
         attrs.append(('dtype',"'%s'" % self.dtype))
+        max_seq_items = get_option('display.max_seq_items')
+        if len(self) > max_seq_items:
+            attrs.append(('length',len(self)))
         return attrs
 
     def to_series(self, **kwargs):
