@@ -14,6 +14,9 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 from cpython cimport PyFloat_Check
 cimport cpython
 
+cdef extern from "numpy/npy_math.h":
+    double NAN "NPY_NAN"
+
 import numpy as np
 isnan = np.isnan
 
@@ -6603,7 +6606,7 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, lcounts = len(counts)
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
 
@@ -6616,39 +6619,45 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
     N, K = (<object> values).shape
 
     if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+
+    else:
+
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
+    with nogil:
+        for i in range(lcounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_add_float32(ndarray[float32_t, ndim=2] out,
@@ -6659,7 +6668,7 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, lcounts = len(counts)
         float32_t val, count
         ndarray[float32_t, ndim=2] sumx, nobs
 
@@ -6672,39 +6681,45 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
     N, K = (<object> values).shape
 
     if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+
+    else:
+
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
+    with nogil:
+        for i in range(lcounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -6759,7 +6774,7 @@ def group_add_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j]
 @cython.boundscheck(False)
@@ -6815,7 +6830,7 @@ def group_add_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j]
 
@@ -6872,7 +6887,7 @@ def group_prod_float64(ndarray[float64_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 @cython.boundscheck(False)
@@ -6928,7 +6943,7 @@ def group_prod_float32(ndarray[float32_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 
@@ -6985,7 +7000,7 @@ def group_prod_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 @cython.boundscheck(False)
@@ -7041,7 +7056,7 @@ def group_prod_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 
@@ -7102,7 +7117,7 @@ def group_var_float64(ndarray[float64_t, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -7163,7 +7178,7 @@ def group_var_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -7225,7 +7240,7 @@ def group_var_bin_float64(ndarray[float64_t, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -7286,7 +7301,7 @@ def group_var_bin_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -7340,7 +7355,7 @@ def group_mean_float64(ndarray[float64_t, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 @cython.wraparound(False)
@@ -7392,7 +7407,7 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 
@@ -7446,7 +7461,7 @@ def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if count == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 
@@ -7499,7 +7514,7 @@ def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if count == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 
@@ -7515,7 +7530,7 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, b
         float64_t val, count
-        float64_t vopen, vhigh, vlow, vclose, NA
+        float64_t vopen, vhigh, vlow, vclose
         bint got_first = 0
 
     if bins[len(bins) - 1] == len(values):
@@ -7528,8 +7543,6 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
     if out.shape[1] != 4:
         raise ValueError('Output array must have 4 columns')
 
-    NA = np.nan
-
     b = 0
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only "
@@ -7538,10 +7551,10 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
         for i in range(N):
             while b < ngroups - 1 and i >= bins[b]:
                 if not got_first:
-                    out[b, 0] = NA
-                    out[b, 1] = NA
-                    out[b, 2] = NA
-                    out[b, 3] = NA
+                    out[b, 0] = NAN
+                    out[b, 1] = NAN
+                    out[b, 2] = NAN
+                    out[b, 3] = NAN
                 else:
                     out[b, 0] = vopen
                     out[b, 1] = vhigh
@@ -7568,10 +7581,10 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
                 vclose = val
 
         if not got_first:
-            out[b, 0] = NA
-            out[b, 1] = NA
-            out[b, 2] = NA
-            out[b, 3] = NA
+            out[b, 0] = NAN
+            out[b, 1] = NAN
+            out[b, 2] = NAN
+            out[b, 3] = NAN
         else:
             out[b, 0] = vopen
             out[b, 1] = vhigh
@@ -7589,7 +7602,7 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, b
         float32_t val, count
-        float32_t vopen, vhigh, vlow, vclose, NA
+        float32_t vopen, vhigh, vlow, vclose
         bint got_first = 0
 
     if bins[len(bins) - 1] == len(values):
@@ -7602,8 +7615,6 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
     if out.shape[1] != 4:
         raise ValueError('Output array must have 4 columns')
 
-    NA = np.nan
-
     b = 0
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only "
@@ -7612,10 +7623,10 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
         for i in range(N):
             while b < ngroups - 1 and i >= bins[b]:
                 if not got_first:
-                    out[b, 0] = NA
-                    out[b, 1] = NA
-                    out[b, 2] = NA
-                    out[b, 3] = NA
+                    out[b, 0] = NAN
+                    out[b, 1] = NAN
+                    out[b, 2] = NAN
+                    out[b, 3] = NAN
                 else:
                     out[b, 0] = vopen
                     out[b, 1] = vhigh
@@ -7642,10 +7653,10 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
                 vclose = val
 
         if not got_first:
-            out[b, 0] = NA
-            out[b, 1] = NA
-            out[b, 2] = NA
-            out[b, 3] = NA
+            out[b, 0] = NAN
+            out[b, 1] = NAN
+            out[b, 2] = NAN
+            out[b, 3] = NAN
         else:
             out[b, 0] = vopen
             out[b, 1] = vhigh
@@ -7692,7 +7703,7 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
@@ -7735,7 +7746,7 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
@@ -7823,7 +7834,7 @@ def group_last_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
@@ -7867,7 +7878,7 @@ def group_last_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
@@ -7956,7 +7967,7 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.boundscheck(False)
@@ -8000,7 +8011,7 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.boundscheck(False)
@@ -8090,7 +8101,7 @@ def group_nth_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.boundscheck(False)
@@ -8135,7 +8146,7 @@ def group_nth_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
 @cython.boundscheck(False)
@@ -8241,7 +8252,7 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = minx[i, j]
 @cython.wraparound(False)
@@ -8301,7 +8312,7 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = minx[i, j]
 @cython.wraparound(False)
@@ -8423,7 +8434,7 @@ def group_min_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = minx[i, j]
 @cython.wraparound(False)
@@ -8484,7 +8495,7 @@ def group_min_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = minx[i, j]
 @cython.wraparound(False)
@@ -8606,7 +8617,7 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = maxx[i, j]
 @cython.wraparound(False)
@@ -8666,7 +8677,7 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = maxx[i, j]
 @cython.wraparound(False)
@@ -8787,7 +8798,7 @@ def group_max_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = maxx[i, j]
 @cython.wraparound(False)
@@ -8847,7 +8858,7 @@ def group_max_bin_float32(ndarray[float32_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = maxx[i, j]
 @cython.wraparound(False)

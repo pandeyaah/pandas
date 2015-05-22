@@ -23,6 +23,9 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
 from cpython cimport PyFloat_Check
 cimport cpython
 
+cdef extern from "numpy/npy_math.h":
+    double NAN "NPY_NAN"
+
 import numpy as np
 isnan = np.isnan
 
@@ -881,7 +884,7 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, lcounts = len(counts)
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] sumx, nobs
 
@@ -894,39 +897,45 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     N, K = (<object> values).shape
 
     if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+
+    else:
+
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = sumx[i, j]
+    with nogil:
+        for i in range(lcounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
 """
 
 group_add_bin_template = """@cython.boundscheck(False)
@@ -982,7 +991,7 @@ def group_add_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j]
 """
@@ -1040,7 +1049,7 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(len(counts)):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 """
@@ -1098,7 +1107,7 @@ def group_prod_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = prodx[i, j]
 """
@@ -1160,7 +1169,7 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -1223,7 +1232,7 @@ def group_var_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         for j in range(K):
             ct = nobs[i, j]
             if ct < 2:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                              (ct * ct - ct))
@@ -1608,7 +1617,7 @@ def group_mean_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if nobs[i, j] == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 """
@@ -1663,7 +1672,7 @@ def group_mean_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         for j in range(K):
             count = nobs[i, j]
             if count == 0:
-                out[i, j] = nan
+                out[i, j] = NAN
             else:
                 out[i, j] = sumx[i, j] / count
 """
@@ -1680,7 +1689,7 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, b
         %(dest_type2)s val, count
-        %(dest_type2)s vopen, vhigh, vlow, vclose, NA
+        %(dest_type2)s vopen, vhigh, vlow, vclose
         bint got_first = 0
 
     if bins[len(bins) - 1] == len(values):
@@ -1693,8 +1702,6 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     if out.shape[1] != 4:
         raise ValueError('Output array must have 4 columns')
 
-    NA = np.nan
-
     b = 0
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only "
@@ -1703,10 +1710,10 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         for i in range(N):
             while b < ngroups - 1 and i >= bins[b]:
                 if not got_first:
-                    out[b, 0] = NA
-                    out[b, 1] = NA
-                    out[b, 2] = NA
-                    out[b, 3] = NA
+                    out[b, 0] = NAN
+                    out[b, 1] = NAN
+                    out[b, 2] = NAN
+                    out[b, 3] = NAN
                 else:
                     out[b, 0] = vopen
                     out[b, 1] = vhigh
@@ -1733,10 +1740,10 @@ def group_ohlc_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 vclose = val
 
         if not got_first:
-            out[b, 0] = NA
-            out[b, 1] = NA
-            out[b, 2] = NA
-            out[b, 3] = NA
+            out[b, 0] = NAN
+            out[b, 1] = NAN
+            out[b, 2] = NAN
+            out[b, 3] = NAN
         else:
             out[b, 0] = vopen
             out[b, 1] = vhigh
@@ -2337,8 +2344,8 @@ def generate_put_template(template, use_ints=True, use_floats=True,
 def generate_put_min_max_template(template, use_ints=True, use_floats=True,
                                   use_objects=False, use_datelikes=False):
     floats_list = [
-        ('float64', 'float64_t', 'nan', 'np.inf'),
-        ('float32', 'float32_t', 'nan', 'np.inf'),
+        ('float64', 'float64_t', 'NAN', 'np.inf'),
+        ('float32', 'float32_t', 'NAN', 'np.inf'),
     ]
     ints_list = [
         ('int64', 'int64_t', 'iNaT', _int64_max),
@@ -2346,7 +2353,7 @@ def generate_put_min_max_template(template, use_ints=True, use_floats=True,
     date_like_list = [
         ('int64', 'int64_t', 'iNaT', _int64_max),
     ]
-    object_list = [('object', 'object', 'nan', 'np.inf')]
+    object_list = [('object', 'object', 'np.nan', 'np.inf')]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
@@ -2369,8 +2376,8 @@ def generate_put_min_max_template(template, use_ints=True, use_floats=True,
 def generate_put_selection_template(template, use_ints=True, use_floats=True,
                                     use_objects=False, use_datelikes=False):
     floats_list = [
-        ('float64', 'float64_t', 'float64_t', 'nan'),
-        ('float32', 'float32_t', 'float32_t', 'nan'),
+        ('float64', 'float64_t', 'float64_t', 'NAN'),
+        ('float32', 'float32_t', 'float32_t', 'NAN'),
     ]
     ints_list = [
         ('int64', 'int64_t', 'int64_t', 'iNaT'),
@@ -2378,7 +2385,7 @@ def generate_put_selection_template(template, use_ints=True, use_floats=True,
     date_like_list = [
         ('int64', 'int64_t', 'int64_t', 'iNaT'),
     ]
-    object_list = [('object', 'object', 'object', 'nan')]
+    object_list = [('object', 'object', 'object', 'np.nan')]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
