@@ -884,7 +884,7 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab, lcounts = len(counts)
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] sumx, nobs
 
@@ -896,9 +896,11 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
 
-        with nogil:
+    with nogil:
+
+        if K > 1:
+
             for i in range(N):
                 lab = labels[i]
                 if lab < 0:
@@ -913,9 +915,8 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                         nobs[lab, j] += 1
                         sumx[lab, j] += val
 
-    else:
+        else:
 
-        with nogil:
             for i in range(N):
                 lab = labels[i]
                 if lab < 0:
@@ -929,8 +930,7 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     nobs[lab, 0] += 1
                     sumx[lab, 0] += val
 
-    with nogil:
-        for i in range(lcounts):
+        for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
                     out[i, j] = NAN
@@ -961,39 +961,42 @@ def group_add_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         ngroups = len(bins) + 1
     N, K = (<object> values).shape
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+        b = 0
+        if K > 1:
+
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        sumx[b, j] += val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    sumx[b, 0] += val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = sumx[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j]
 """
 
 group_prod_template = """@cython.boundscheck(False)
@@ -1006,7 +1009,7 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] prodx, nobs
 
@@ -1018,40 +1021,41 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+    with nogil:
+        if K > 1:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        prodx[lab, j] *= val
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    prodx[lab, j] *= val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    prodx[lab, 0] *= val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                prodx[lab, 0] *= val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = prodx[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = prodx[i, j]
 """
 
 group_prod_bin_template = """@cython.boundscheck(False)
@@ -1077,39 +1081,41 @@ def group_prod_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         ngroups = len(bins) + 1
     N, K = (<object> values).shape
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        prodx[b, j] *= val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    prodx[b, j] *= val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    prodx[b, 0] *= val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                prodx[b, 0] *= val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = prodx[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = prodx[i, j]
 """
 
 group_var_template = """@cython.wraparound(False)
@@ -1119,7 +1125,7 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[%(dest_type2)s, ndim=2] values,
               ndarray[int64_t] labels):
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, ct
         ndarray[%(dest_type2)s, ndim=2] nobs, sumx, sumxx
 
@@ -1132,47 +1138,49 @@ def group_var_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
+    with nogil:
+        if K > 1:
+            for i in range(N):
 
-            lab = labels[i]
-            if lab < 0:
-                continue
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
+                counts[lab] += 1
 
-            for j in range(K):
-                val = values[i, j]
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+                        sumxx[lab, j] += val * val
+        else:
+            for i in range(N):
+
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-                    sumxx[lab, j] += val * val
-    else:
-        for i in range(N):
-
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-            val = values[i, 0]
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-                sumxx[lab, 0] += val * val
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
+                    sumxx[lab, 0] += val * val
 
 
-    for i in range(len(counts)):
-        for j in range(K):
-            ct = nobs[i, j]
-            if ct < 2:
-                out[i, j] = NAN
-            else:
-                out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
-                             (ct * ct - ct))
+        for i in range(ncounts):
+            for j in range(K):
+                ct = nobs[i, j]
+                if ct < 2:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
+                                 (ct * ct - ct))
 """
 
 group_var_bin_template = """@cython.wraparound(False)
@@ -1198,44 +1206,45 @@ def group_var_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
 
-            counts[b] += 1
+                counts[b] += 1
 
-            for j in range(K):
-                val = values[i, j]
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        sumx[b, j] += val
+                        sumxx[b, j] += val * val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-                    sumxx[b, j] += val * val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    sumx[b, 0] += val
+                    sumxx[b, 0] += val * val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-                sumxx[b, 0] += val * val
-
-    for i in range(ngroups):
-        for j in range(K):
-            ct = nobs[i, j]
-            if ct < 2:
-                out[i, j] = NAN
-            else:
-                out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
-                             (ct * ct - ct))
+        for i in range(ngroups):
+            for j in range(K):
+                ct = nobs[i, j]
+                if ct < 2:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
+                                 (ct * ct - ct))
 """
 
 group_count_template = """@cython.boundscheck(False)
@@ -1248,14 +1257,15 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, lab
+        Py_ssize_t i, j, lab, ncounts = len(counts)
         Py_ssize_t N = values.shape[0], K = values.shape[1]
         %(c_type)s val
         ndarray[int64_t, ndim=2] nobs = np.zeros((out.shape[0], out.shape[1]),
                                                  dtype=np.int64)
 
     if len(values) != len(labels):
-       raise AssertionError("len(index) != len(labels)")
+        raise AssertionError("len(index) != len(labels)")
+
 
     for i in range(N):
         lab = labels[i]
@@ -1269,7 +1279,7 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
             # not nan
             nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(len(counts)):
+    for i in range(ncounts):
         for j in range(K):
             out[i, j] = nobs[i, j]
 
