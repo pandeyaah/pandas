@@ -691,7 +691,7 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
 """
 
 group_last_template = """@cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[%(c_type)s, ndim=2] values,
@@ -736,7 +736,7 @@ def group_last_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 """
 
 group_last_bin_template = """@cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[%(c_type)s, ndim=2] values,
@@ -781,8 +781,8 @@ def group_last_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 out[i, j] = resx[i, j]
 """
 
-group_nth_bin_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_nth_bin_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[%(c_type)s, ndim=2] values,
@@ -828,8 +828,8 @@ def group_nth_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 out[i, j] = resx[i, j]
 """
 
-group_nth_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_nth_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(c_type)s, ndim=2] values,
@@ -874,8 +874,8 @@ def group_nth_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                 out[i, j] = resx[i, j]
 """
 
-group_add_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_add_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[%(c_type)s, ndim=2] values,
@@ -938,8 +938,8 @@ def group_add_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = sumx[i, j]
 """
 
-group_add_bin_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_add_bin_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[%(dest_type2)s, ndim=2] values,
@@ -999,8 +999,8 @@ def group_add_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = sumx[i, j]
 """
 
-group_prod_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_prod_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[%(c_type)s, ndim=2] values,
@@ -1058,8 +1058,8 @@ def group_prod_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                     out[i, j] = prodx[i, j]
 """
 
-group_prod_bin_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_prod_bin_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[%(dest_type2)s, ndim=2] values,
@@ -1286,8 +1286,8 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
 """
 
-group_count_bin_template = """@cython.boundscheck(False)
-@cython.wraparound(False)
+group_count_bin_template = """@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[%(c_type)s, ndim=2] values,
@@ -1634,6 +1634,7 @@ def group_mean_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 """
 
 group_mean_bin_template = """
+@cython.boundscheck(False)
 def group_mean_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[%(dest_type2)s, ndim=2] values,

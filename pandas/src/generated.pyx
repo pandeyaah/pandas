@@ -6596,8 +6596,8 @@ def diff_2d_int64(ndarray[int64_t, ndim=2] arr,
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
@@ -6658,8 +6658,8 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
@@ -6721,8 +6721,8 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_bin_float64(ndarray[float64_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -6780,8 +6780,8 @@ def group_add_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_add_bin_float32(ndarray[float32_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float32_t, ndim=2] values,
@@ -6840,8 +6840,8 @@ def group_add_bin_float32(ndarray[float32_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_float64(ndarray[float64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float64_t, ndim=2] values,
@@ -6897,8 +6897,8 @@ def group_prod_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_float32(ndarray[float32_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float32_t, ndim=2] values,
@@ -6955,8 +6955,8 @@ def group_prod_float32(ndarray[float32_t, ndim=2] out,
                 else:
                     out[i, j] = prodx[i, j]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_bin_float64(ndarray[float64_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -7013,8 +7013,8 @@ def group_prod_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_prod_bin_float32(ndarray[float32_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float32_t, ndim=2] values,
@@ -7432,6 +7432,7 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = sumx[i, j] / count
 
 
+@cython.boundscheck(False)
 def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -7486,6 +7487,7 @@ def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j] / count
 
+@cython.boundscheck(False)
 def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float32_t, ndim=2] values,
@@ -7686,7 +7688,7 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
             out[b, 3] = vclose
 
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_float64(ndarray[float64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float64_t, ndim=2] values,
@@ -7729,7 +7731,7 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_float32(ndarray[float32_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[float32_t, ndim=2] values,
@@ -7772,7 +7774,7 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_int64(ndarray[int64_t, ndim=2] out,
                ndarray[int64_t] counts,
                ndarray[int64_t, ndim=2] values,
@@ -7816,7 +7818,7 @@ def group_last_int64(ndarray[int64_t, ndim=2] out,
                 out[i, j] = resx[i, j]
 
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_bin_float64(ndarray[float64_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float64_t, ndim=2] values,
@@ -7860,7 +7862,7 @@ def group_last_bin_float64(ndarray[float64_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_bin_float32(ndarray[float32_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[float32_t, ndim=2] values,
@@ -7904,7 +7906,7 @@ def group_last_bin_float32(ndarray[float32_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 @cython.wraparound(False)
-@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_last_bin_int64(ndarray[int64_t, ndim=2] out,
                    ndarray[int64_t] counts,
                    ndarray[int64_t, ndim=2] values,
@@ -7948,8 +7950,8 @@ def group_last_bin_int64(ndarray[int64_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_float64(ndarray[float64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float64_t, ndim=2] values,
@@ -7992,8 +7994,8 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
                 out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_float32(ndarray[float32_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[float32_t, ndim=2] values,
@@ -8036,8 +8038,8 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
                 out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_int64(ndarray[int64_t, ndim=2] out,
               ndarray[int64_t] counts,
               ndarray[int64_t, ndim=2] values,
@@ -8081,8 +8083,8 @@ def group_nth_int64(ndarray[int64_t, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_bin_float64(ndarray[float64_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float64_t, ndim=2] values,
@@ -8126,8 +8128,8 @@ def group_nth_bin_float64(ndarray[float64_t, ndim=2] out,
                 out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_bin_float32(ndarray[float32_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[float32_t, ndim=2] values,
@@ -8171,8 +8173,8 @@ def group_nth_bin_float32(ndarray[float32_t, ndim=2] out,
                 out[i, j] = NAN
             else:
                 out[i, j] = resx[i, j]
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_nth_bin_int64(ndarray[int64_t, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[int64_t, ndim=2] values,
@@ -9130,8 +9132,8 @@ def group_count_int64(ndarray[int64_t, ndim=2] out,
 
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[float64_t, ndim=2] values,
@@ -9164,8 +9166,8 @@ def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
             out[i, j] = nobs[i, j]
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[float32_t, ndim=2] values,
@@ -9198,8 +9200,8 @@ def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
             out[i, j] = nobs[i, j]
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[int64_t, ndim=2] values,
@@ -9232,8 +9234,8 @@ def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
             out[i, j] = nobs[i, j]
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_object(ndarray[object, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[object, ndim=2] values,
@@ -9266,8 +9268,8 @@ def group_count_bin_object(ndarray[object, ndim=2] out,
             out[i, j] = nobs[i, j]
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
                              ndarray[int64_t] counts,
                              ndarray[int64_t, ndim=2] values,
