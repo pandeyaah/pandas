@@ -7331,7 +7331,7 @@ def group_mean_float64(ndarray[float64_t, ndim=2] out,
                ndarray[float64_t, ndim=2] values,
                ndarray[int64_t] labels):
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float64_t val, count
         ndarray[float64_t, ndim=2] sumx, nobs
 
@@ -7343,39 +7343,40 @@ def group_mean_float64(ndarray[float64_t, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+    with nogil:
+        if K > 1:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
 
-            counts[lab] += 1
-            val = values[i, 0]
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            count = nobs[i, j]
-            if nobs[i, j] == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = sumx[i, j] / count
+        for i in range(ncounts):
+            for j in range(K):
+                count = nobs[i, j]
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean_float32(ndarray[float32_t, ndim=2] out,
@@ -7383,7 +7384,7 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
                ndarray[float32_t, ndim=2] values,
                ndarray[int64_t] labels):
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         float32_t val, count
         ndarray[float32_t, ndim=2] sumx, nobs
 
@@ -7395,39 +7396,40 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+    with nogil:
+        if K > 1:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        sumx[lab, j] += val
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    sumx[lab, j] += val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    sumx[lab, 0] += val
 
-            counts[lab] += 1
-            val = values[i, 0]
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                sumx[lab, 0] += val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            count = nobs[i, j]
-            if nobs[i, j] == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = sumx[i, j] / count
+        for i in range(ncounts):
+            for j in range(K):
+                count = nobs[i, j]
+                if nobs[i, j] == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
 
 
 def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
@@ -7448,40 +7450,41 @@ def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
     else:
         ngroups = len(bins) + 1
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        sumx[b, j] += val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    sumx[b, 0] += val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-
-    for i in range(ngroups):
-        for j in range(K):
-            count = nobs[i, j]
-            if count == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = sumx[i, j] / count
+        for i in range(ngroups):
+            for j in range(K):
+                count = nobs[i, j]
+                if count == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
 
 def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
                    ndarray[int64_t] counts,
@@ -7501,40 +7504,41 @@ def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
     else:
         ngroups = len(bins) + 1
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        sumx[b, j] += val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    sumx[b, j] += val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    sumx[b, 0] += val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                sumx[b, 0] += val
-
-    for i in range(ngroups):
-        for j in range(K):
-            count = nobs[i, j]
-            if count == 0:
-                out[i, j] = NAN
-            else:
-                out[i, j] = sumx[i, j] / count
+        for i in range(ngroups):
+            for j in range(K):
+                count = nobs[i, j]
+                if count == 0:
+                    out[i, j] = NAN
+                else:
+                    out[i, j] = sumx[i, j] / count
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
