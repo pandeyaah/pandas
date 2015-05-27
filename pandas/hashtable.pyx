@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
@@ -33,7 +33,7 @@ cdef extern from "Python.h":
     int PySlice_Check(object)
 
 cdef size_t _INIT_VEC_CAP = 32
-cdef size_t _USE_GIL = 100000
+cdef size_t _USE_GIL = 1000000
 
 def list_to_object_array(list obj):
     '''
