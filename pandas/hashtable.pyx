@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
@@ -32,6 +32,9 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
+cdef size_t _INIT_VEC_CAP = 32
+cdef size_t _USE_GIL = 100000
+
 def list_to_object_array(list obj):
     '''
     Convert list to object ndarray. Seriously can't believe I had to write this
@@ -49,8 +52,6 @@ def list_to_object_array(list obj):
 
     return arr
 
-
-cdef size_t _INIT_VEC_CAP = 32
 
 cdef class Vector:
 
@@ -109,11 +110,19 @@ cdef class Int64Vector(Vector):
         self.ao.resize(self.m)
         self.data = <int64_t*> self.ao.data
 
-    cdef inline void append(self, int64_t x) nogil:
+    cdef inline void append_nogil(self, int64_t x) nogil:
 
         if self.needs_resize():
             with gil:
                 self.resize()
+
+        self.data[self.n] = x
+        self.n += 1
+
+    cdef inline void append(self, int64_t x):
+
+        if self.needs_resize():
+            self.resize()
 
         self.data[self.n] = x
         self.n += 1
@@ -364,7 +373,22 @@ cdef class Int64HashTable(HashTable):
 
         labels = np.empty(n, dtype=np.int64)
 
-        with nogil:
+        if n > _USE_GIL:
+            with nogil:
+                for i in range(n):
+                    val = values[i]
+                    k = kh_get_int64(self.table, val)
+                    if k != self.table.n_buckets:
+                        idx = self.table.vals[k]
+                        labels[i] = idx
+                    else:
+                        k = kh_put_int64(self.table, val, &ret)
+                        self.table.vals[k] = count
+                        uniques.append_nogil(val)
+                        labels[i] = count
+                        count += 1
+
+        else:
             for i in range(n):
                 val = values[i]
                 k = kh_get_int64(self.table, val)
@@ -409,7 +433,7 @@ cdef class Int64HashTable(HashTable):
                 else:
                     k = kh_put_int64(self.table, val, &ret)
                     self.table.vals[k] = count
-                    uniques.append(val)
+                    uniques.append_nogil(val)
                     labels[i] = count
                     count += 1
 
@@ -433,7 +457,7 @@ cdef class Int64HashTable(HashTable):
                 k = kh_get_int64(self.table, val)
                 if k == self.table.n_buckets:
                     kh_put_int64(self.table, val, &ret)
-                    uniques.append(val)
+                    uniques.append_nogil(val)
 
         result = uniques.to_array()
 
