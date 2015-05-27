@@ -71,7 +71,6 @@ cpdef ensure_object(object arr):
         return arr.asobject
     else:
         return np.array(arr, dtype=np.object_)
-
 """
 
 
@@ -93,7 +92,6 @@ def take_1d_%(name)s_%(dest)s(ndarray[%(c_type_in)s] values,
             out[i] = fv
         else:
             out[i] = %(preval)svalues[idx]%(postval)s
-
 """
 
 inner_take_2d_axis0_template = """\
@@ -135,7 +133,6 @@ inner_take_2d_axis0_template = """\
         else:
             for j from 0 <= j < k:
                 out[i, j] = %(preval)svalues[idx, j]%(postval)s
-
 """
 
 take_2d_axis0_template = """\
@@ -242,7 +239,6 @@ def take_2d_multi_%(name)s_%(dest)s(ndarray[%(c_type_in)s, ndim=2] values,
                     out[i, j] = fv
                 else:
                     out[i, j] = %(preval)svalues[idx, idx1[j]]%(postval)s
-
 """
 
 
@@ -333,7 +329,6 @@ def backfill_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
         cur = prev
 
     return indexer
-
 """
 
 
@@ -397,7 +392,6 @@ def pad_%(name)s(ndarray[%(c_type)s] old, ndarray[%(c_type)s] new,
         cur = next
 
     return indexer
-
 """
 
 pad_1d_template = """@cython.boundscheck(False)
@@ -432,7 +426,6 @@ def pad_inplace_%(name)s(ndarray[%(c_type)s] values,
         else:
             fill_count = 0
             val = values[i]
-
 """
 
 pad_2d_template = """@cython.boundscheck(False)
@@ -657,7 +650,6 @@ cpdef map_indices_%(name)s(ndarray[%(c_type)s] index):
         result[index[i]] = i
 
     return result
-
 """
 
 groupby_template = """@cython.wraparound(False)
@@ -687,7 +679,6 @@ def groupby_%(name)s(ndarray[%(c_type)s] index, ndarray labels):
             result[key] = [idx]
 
     return result
-
 """
 
 group_last_template = """@cython.wraparound(False)
@@ -1286,8 +1277,6 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ncounts):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
-
 """
 
 group_count_bin_template = """@cython.wraparound(False)
@@ -1322,9 +1311,8 @@ def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
-
 """
+
 # add passing bin edges, instead of labels
 
 
@@ -1788,7 +1776,6 @@ def arrmap_%(name)s(ndarray[%(c_type)s] index, object func):
         result[i] = func(index[i])
 
     return maybe_convert_objects(result)
-
 """
 
 #----------------------------------------------------------------------
@@ -1840,7 +1827,6 @@ def left_join_indexer_unique_%(name)s(ndarray[%(c_type)s] left,
             indexer[i] = -1
             i += 1
     return indexer
-
 """
 
 # @cython.wraparound(False)
@@ -1947,7 +1933,6 @@ def left_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-
 """
 
 
@@ -2043,7 +2028,6 @@ def inner_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-
 """
 
 
@@ -2175,7 +2159,6 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
                 j += 1
 
     return result, lindexer, rindexer
-
 """
 
 outer_join_template = """@cython.wraparound(False)
@@ -2273,7 +2256,6 @@ def outer_join_indexer_%(name)s(ndarray[%(c_type)s] left,
             count += 1
 
     return result, lindexer, rindexer
-
 """
 
 # ensure_dtype functions
@@ -2287,7 +2269,6 @@ cpdef ensure_%(name)s(object arr):
             return arr.astype(np.%(dtype)s)
     else:
         return np.array(arr, dtype=np.%(dtype)s)
-
 """
 
 ensure_functions = [
@@ -2362,6 +2343,7 @@ def generate_put_template(template, use_ints=True, use_floats=True,
                            'dest_type2': dest_type,
                            'dest_dtype': dest_dtype}
         output.write(func)
+        output.write("\n")
     return output.getvalue()
 
 def generate_put_min_max_template(template, use_ints=True, use_floats=True,
@@ -2394,6 +2376,7 @@ def generate_put_min_max_template(template, use_ints=True, use_floats=True,
                            'nan_val': nan_val,
                            'inf_val': inf_val}
         output.write(func)
+        output.write("\n")
     return output.getvalue()
 
 def generate_put_selection_template(template, use_ints=True, use_floats=True,
@@ -2426,6 +2409,7 @@ def generate_put_selection_template(template, use_ints=True, use_floats=True,
                            'dest_type2': dest_type,
                            'nan_val': nan_val}
         output.write(func)
+        output.write("\n")
     return output.getvalue()
 
 def generate_take_template(template, exclude=None):
@@ -2464,6 +2448,7 @@ def generate_take_template(template, exclude=None):
                            'preval': preval, 'postval': postval,
                            'can_copy': 'True' if can_copy else 'False'}
         output.write(func)
+        output.write("\n")
     return output.getvalue()
 
 def generate_from_template(template, exclude=None):
@@ -2486,6 +2471,7 @@ def generate_from_template(template, exclude=None):
                            'dtype': dtype,
                            'raise_on_na': 'False' if can_hold_na else 'True'}
         output.write(func)
+        output.write("\n")
     return output.getvalue()
 
 put_2d = [diff_2d_template]

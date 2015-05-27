@@ -64,7 +64,6 @@ cpdef ensure_object(object arr):
         return np.array(arr, dtype=np.object_)
 
 
-
 cpdef ensure_float64(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_FLOAT64:
@@ -73,7 +72,6 @@ cpdef ensure_float64(object arr):
             return arr.astype(np.float64)
     else:
         return np.array(arr, dtype=np.float64)
-
 
 cpdef ensure_float32(object arr):
     if util.is_array(arr):
@@ -84,7 +82,6 @@ cpdef ensure_float32(object arr):
     else:
         return np.array(arr, dtype=np.float32)
 
-
 cpdef ensure_int8(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_INT8:
@@ -93,7 +90,6 @@ cpdef ensure_int8(object arr):
             return arr.astype(np.int8)
     else:
         return np.array(arr, dtype=np.int8)
-
 
 cpdef ensure_int16(object arr):
     if util.is_array(arr):
@@ -104,7 +100,6 @@ cpdef ensure_int16(object arr):
     else:
         return np.array(arr, dtype=np.int16)
 
-
 cpdef ensure_int32(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_INT32:
@@ -114,7 +109,6 @@ cpdef ensure_int32(object arr):
     else:
         return np.array(arr, dtype=np.int32)
 
-
 cpdef ensure_int64(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_INT64:
@@ -123,7 +117,6 @@ cpdef ensure_int64(object arr):
             return arr.astype(np.int64)
     else:
         return np.array(arr, dtype=np.int64)
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -1229,6 +1222,7 @@ def backfill_inplace_float64(ndarray[float64_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace_float32(ndarray[float32_t] values,
@@ -1261,6 +1255,7 @@ def backfill_inplace_float32(ndarray[float32_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace_object(ndarray[object] values,
@@ -1293,6 +1288,7 @@ def backfill_inplace_object(ndarray[object] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace_int32(ndarray[int32_t] values,
@@ -1325,6 +1321,7 @@ def backfill_inplace_int32(ndarray[int32_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace_int64(ndarray[int64_t] values,
@@ -1357,6 +1354,7 @@ def backfill_inplace_int64(ndarray[int64_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_inplace_bool(ndarray[uint8_t] values,
@@ -1389,6 +1387,7 @@ def backfill_inplace_bool(ndarray[uint8_t] values,
         else:
             fill_count = 0
             val = values[i]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1424,6 +1423,7 @@ def pad_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_float32(ndarray[float32_t, ndim=2] values,
@@ -1458,6 +1458,7 @@ def pad_2d_inplace_float32(ndarray[float32_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_object(ndarray[object, ndim=2] values,
@@ -1492,6 +1493,7 @@ def pad_2d_inplace_object(ndarray[object, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
@@ -1526,6 +1528,7 @@ def pad_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
@@ -1560,6 +1563,7 @@ def pad_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
@@ -1595,6 +1599,7 @@ def pad_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
                 fill_count = 0
                 val = values[j, i]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
@@ -1629,6 +1634,7 @@ def backfill_2d_inplace_float64(ndarray[float64_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_float32(ndarray[float32_t, ndim=2] values,
@@ -1663,6 +1669,7 @@ def backfill_2d_inplace_float32(ndarray[float32_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
@@ -1697,6 +1704,7 @@ def backfill_2d_inplace_object(ndarray[object, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
@@ -1731,6 +1739,7 @@ def backfill_2d_inplace_int32(ndarray[int32_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
@@ -1765,6 +1774,7 @@ def backfill_2d_inplace_int64(ndarray[int64_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
@@ -1799,6 +1809,7 @@ def backfill_2d_inplace_bool(ndarray[uint8_t, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1847,6 +1858,7 @@ def is_monotonic_float64(ndarray[float64_t] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
@@ -1894,6 +1906,7 @@ def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_object(ndarray[object] arr, bint timelike):
@@ -1941,6 +1954,7 @@ def is_monotonic_object(ndarray[object] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
@@ -1988,6 +2002,7 @@ def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
@@ -2035,6 +2050,7 @@ def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic_bool(ndarray[uint8_t] arr, bint timelike):
@@ -2082,6 +2098,7 @@ def is_monotonic_bool(ndarray[uint8_t] arr, bint timelike):
             return False, False, None
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2751,7 +2768,6 @@ cdef inline take_2d_axis0_bool_bool_memview(uint8_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_bool_bool(ndarray[uint8_t, ndim=2] values,
@@ -2850,7 +2866,6 @@ cdef inline take_2d_axis0_bool_object_memview(uint8_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = True if values[idx, j] > 0 else False
-
 
 
 @cython.wraparound(False)
@@ -2953,7 +2968,6 @@ cdef inline take_2d_axis0_int8_int8_memview(int8_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int8_int8(ndarray[int8_t, ndim=2] values,
@@ -3052,7 +3066,6 @@ cdef inline take_2d_axis0_int8_int32_memview(int8_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -3155,7 +3168,6 @@ cdef inline take_2d_axis0_int8_int64_memview(int8_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int8_int64(ndarray[int8_t, ndim=2] values,
@@ -3254,7 +3266,6 @@ cdef inline take_2d_axis0_int8_float64_memview(int8_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -3357,7 +3368,6 @@ cdef inline take_2d_axis0_int16_int16_memview(int16_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int16_int16(ndarray[int16_t, ndim=2] values,
@@ -3456,7 +3466,6 @@ cdef inline take_2d_axis0_int16_int32_memview(int16_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -3559,7 +3568,6 @@ cdef inline take_2d_axis0_int16_int64_memview(int16_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int16_int64(ndarray[int16_t, ndim=2] values,
@@ -3658,7 +3666,6 @@ cdef inline take_2d_axis0_int16_float64_memview(int16_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -3761,7 +3768,6 @@ cdef inline take_2d_axis0_int32_int32_memview(int32_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int32_int32(ndarray[int32_t, ndim=2] values,
@@ -3860,7 +3866,6 @@ cdef inline take_2d_axis0_int32_int64_memview(int32_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -3963,7 +3968,6 @@ cdef inline take_2d_axis0_int32_float64_memview(int32_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int32_float64(ndarray[int32_t, ndim=2] values,
@@ -4062,7 +4066,6 @@ cdef inline take_2d_axis0_int64_int64_memview(int64_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -4165,7 +4168,6 @@ cdef inline take_2d_axis0_int64_float64_memview(int64_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_int64_float64(ndarray[int64_t, ndim=2] values,
@@ -4264,7 +4266,6 @@ cdef inline take_2d_axis0_float32_float32_memview(float32_t[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -4367,7 +4368,6 @@ cdef inline take_2d_axis0_float32_float64_memview(float32_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_float32_float64(ndarray[float32_t, ndim=2] values,
@@ -4468,7 +4468,6 @@ cdef inline take_2d_axis0_float64_float64_memview(float64_t[:, :] values,
                 out[i, j] = values[idx, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def take_2d_axis0_float64_float64(ndarray[float64_t, ndim=2] values,
@@ -4567,7 +4566,6 @@ cdef inline take_2d_axis0_object_object_memview(object[:, :] values,
         else:
             for j from 0 <= j < k:
                 out[i, j] = values[idx, j]
-
 
 
 @cython.wraparound(False)
@@ -4687,6 +4685,7 @@ def take_2d_axis1_bool_bool(ndarray[uint8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_bool_object_memview(uint8_t[:, :] values,
@@ -4749,6 +4748,7 @@ def take_2d_axis1_bool_object(ndarray[uint8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = True if values[i, idx] > 0 else False
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int8_memview(int8_t[:, :] values,
@@ -4811,6 +4811,7 @@ def take_2d_axis1_int8_int8(ndarray[int8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int32_memview(int8_t[:, :] values,
@@ -4873,6 +4874,7 @@ def take_2d_axis1_int8_int32(ndarray[int8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_int64_memview(int8_t[:, :] values,
@@ -4935,6 +4937,7 @@ def take_2d_axis1_int8_int64(ndarray[int8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int8_float64_memview(int8_t[:, :] values,
@@ -4997,6 +5000,7 @@ def take_2d_axis1_int8_float64(ndarray[int8_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int16_memview(int16_t[:, :] values,
@@ -5059,6 +5063,7 @@ def take_2d_axis1_int16_int16(ndarray[int16_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int32_memview(int16_t[:, :] values,
@@ -5121,6 +5126,7 @@ def take_2d_axis1_int16_int32(ndarray[int16_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_int64_memview(int16_t[:, :] values,
@@ -5183,6 +5189,7 @@ def take_2d_axis1_int16_int64(ndarray[int16_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int16_float64_memview(int16_t[:, :] values,
@@ -5245,6 +5252,7 @@ def take_2d_axis1_int16_float64(ndarray[int16_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_int32_memview(int32_t[:, :] values,
@@ -5307,6 +5315,7 @@ def take_2d_axis1_int32_int32(ndarray[int32_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_int64_memview(int32_t[:, :] values,
@@ -5369,6 +5378,7 @@ def take_2d_axis1_int32_int64(ndarray[int32_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int32_float64_memview(int32_t[:, :] values,
@@ -5431,6 +5441,7 @@ def take_2d_axis1_int32_float64(ndarray[int32_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int64_int64_memview(int64_t[:, :] values,
@@ -5493,6 +5504,7 @@ def take_2d_axis1_int64_int64(ndarray[int64_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_int64_float64_memview(int64_t[:, :] values,
@@ -5555,6 +5567,7 @@ def take_2d_axis1_int64_float64(ndarray[int64_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float32_float32_memview(float32_t[:, :] values,
@@ -5617,6 +5630,7 @@ def take_2d_axis1_float32_float32(ndarray[float32_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float32_float64_memview(float32_t[:, :] values,
@@ -5679,6 +5693,7 @@ def take_2d_axis1_float32_float64(ndarray[float32_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_float64_float64_memview(float64_t[:, :] values,
@@ -5741,6 +5756,7 @@ def take_2d_axis1_float64_float64(ndarray[float64_t, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline take_2d_axis1_object_object_memview(object[:, :] values,
@@ -5803,6 +5819,7 @@ def take_2d_axis1_object_object(ndarray[object, ndim=2] values,
                 out[i, j] = fv
             else:
                 out[i, j] = values[i, idx]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -6380,6 +6397,7 @@ def diff_2d_float64(ndarray[float64_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_float32(ndarray[float32_t, ndim=2] arr,
@@ -6423,6 +6441,7 @@ def diff_2d_float32(ndarray[float32_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_int8(ndarray[int8_t, ndim=2] arr,
@@ -6466,6 +6485,7 @@ def diff_2d_int8(ndarray[int8_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_int16(ndarray[int16_t, ndim=2] arr,
@@ -6509,6 +6529,7 @@ def diff_2d_int16(ndarray[int16_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_int32(ndarray[int32_t, ndim=2] arr,
@@ -6552,6 +6573,7 @@ def diff_2d_int32(ndarray[int32_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_int64(ndarray[int64_t, ndim=2] arr,
@@ -6595,6 +6617,7 @@ def diff_2d_int64(ndarray[int64_t, ndim=2] arr,
             for i in range(sx):
                 for j in range(start, stop):
                     out[i, j] = arr[i, j] - arr[i, j - periods]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -6658,6 +6681,7 @@ def group_add_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_add_float32(ndarray[float32_t, ndim=2] out,
@@ -6721,6 +6745,7 @@ def group_add_float32(ndarray[float32_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_add_bin_float64(ndarray[float64_t, ndim=2] out,
@@ -6780,6 +6805,7 @@ def group_add_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_add_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -6840,6 +6866,7 @@ def group_add_bin_float32(ndarray[float32_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod_float64(ndarray[float64_t, ndim=2] out,
@@ -6897,6 +6924,7 @@ def group_prod_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod_float32(ndarray[float32_t, ndim=2] out,
@@ -6954,6 +6982,7 @@ def group_prod_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -7013,6 +7042,7 @@ def group_prod_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -7071,6 +7101,7 @@ def group_prod_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -7135,6 +7166,7 @@ def group_var_float64(ndarray[float64_t, ndim=2] out,
                 else:
                     out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                                  (ct * ct - ct))
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_var_float32(ndarray[float32_t, ndim=2] out,
@@ -7199,6 +7231,7 @@ def group_var_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                                  (ct * ct - ct))
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_var_bin_float64(ndarray[float64_t, ndim=2] out,
@@ -7261,6 +7294,7 @@ def group_var_bin_float64(ndarray[float64_t, ndim=2] out,
                 else:
                     out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                                  (ct * ct - ct))
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_var_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -7324,6 +7358,7 @@ def group_var_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = ((ct * sumxx[i, j] - sumx[i, j] * sumx[i, j]) /
                                  (ct * ct - ct))
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean_float64(ndarray[float64_t, ndim=2] out,
@@ -7377,6 +7412,7 @@ def group_mean_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean_float32(ndarray[float32_t, ndim=2] out,
@@ -7430,6 +7466,7 @@ def group_mean_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
+
 
 
 @cython.boundscheck(False)
@@ -7487,6 +7524,7 @@ def group_mean_bin_float64(ndarray[float64_t, ndim=2] out,
                 else:
                     out[i, j] = sumx[i, j] / count
 
+
 @cython.boundscheck(False)
 def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
                    ndarray[int64_t] counts,
@@ -7541,6 +7579,7 @@ def group_mean_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j] / count
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -7616,6 +7655,7 @@ def group_ohlc_float64(ndarray[float64_t, ndim=2] out,
                 out[b, 1] = vhigh
                 out[b, 2] = vlow
                 out[b, 3] = vclose
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
@@ -7691,6 +7731,7 @@ def group_ohlc_float32(ndarray[float32_t, ndim=2] out,
                 out[b, 2] = vlow
                 out[b, 3] = vclose
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_float64(ndarray[float64_t, ndim=2] out,
@@ -7735,6 +7776,7 @@ def group_last_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_float32(ndarray[float32_t, ndim=2] out,
@@ -7779,6 +7821,7 @@ def group_last_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_int64(ndarray[int64_t, ndim=2] out,
@@ -7823,6 +7866,7 @@ def group_last_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = iNaT
                 else:
                     out[i, j] = resx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -7869,6 +7913,7 @@ def group_last_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -7914,6 +7959,7 @@ def group_last_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -7960,6 +8006,7 @@ def group_last_bin_int64(ndarray[int64_t, ndim=2] out,
                 else:
                     out[i, j] = resx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_float64(ndarray[float64_t, ndim=2] out,
@@ -8005,6 +8052,7 @@ def group_nth_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_float32(ndarray[float32_t, ndim=2] out,
@@ -8050,6 +8098,7 @@ def group_nth_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_int64(ndarray[int64_t, ndim=2] out,
@@ -8095,6 +8144,7 @@ def group_nth_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = iNaT
                 else:
                     out[i, j] = resx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -8142,6 +8192,7 @@ def group_nth_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -8188,6 +8239,7 @@ def group_nth_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -8234,6 +8286,7 @@ def group_nth_bin_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = iNaT
                 else:
                     out[i, j] = resx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -8296,6 +8349,7 @@ def group_min_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = minx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min_float32(ndarray[float32_t, ndim=2] out,
@@ -8357,6 +8411,7 @@ def group_min_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = minx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min_int64(ndarray[int64_t, ndim=2] out,
@@ -8418,6 +8473,7 @@ def group_min_int64(ndarray[int64_t, ndim=2] out,
                     out[i, j] = iNaT
                 else:
                     out[i, j] = minx[i, j]
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -8481,6 +8537,7 @@ def group_min_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = minx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -8543,6 +8600,7 @@ def group_min_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = minx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -8606,6 +8664,7 @@ def group_min_bin_int64(ndarray[int64_t, ndim=2] out,
                 else:
                     out[i, j] = minx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_float64(ndarray[float64_t, ndim=2] out,
@@ -8667,6 +8726,7 @@ def group_max_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = maxx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_float32(ndarray[float32_t, ndim=2] out,
@@ -8728,6 +8788,7 @@ def group_max_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = maxx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_int64(ndarray[int64_t, ndim=2] out,
@@ -8790,6 +8851,7 @@ def group_max_int64(ndarray[int64_t, ndim=2] out,
                 else:
                     out[i, j] = maxx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_bin_float64(ndarray[float64_t, ndim=2] out,
@@ -8851,6 +8913,7 @@ def group_max_bin_float64(ndarray[float64_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = maxx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_bin_float32(ndarray[float32_t, ndim=2] out,
@@ -8912,6 +8975,7 @@ def group_max_bin_float32(ndarray[float32_t, ndim=2] out,
                     out[i, j] = NAN
                 else:
                     out[i, j] = maxx[i, j]
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_max_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -8974,6 +9038,7 @@ def group_max_bin_int64(ndarray[int64_t, ndim=2] out,
                 else:
                     out[i, j] = maxx[i, j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_count_float64(ndarray[float64_t, ndim=2] out,
@@ -9009,7 +9074,6 @@ def group_count_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ncounts):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -9047,7 +9111,6 @@ def group_count_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             out[i, j] = nobs[i, j]
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_count_int64(ndarray[int64_t, ndim=2] out,
@@ -9083,7 +9146,6 @@ def group_count_int64(ndarray[int64_t, ndim=2] out,
     for i in range(ncounts):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -9121,7 +9183,6 @@ def group_count_object(ndarray[object, ndim=2] out,
         for j in range(K):
             out[i, j] = nobs[i, j]
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_count_int64(ndarray[int64_t, ndim=2] out,
@@ -9159,7 +9220,6 @@ def group_count_int64(ndarray[int64_t, ndim=2] out,
             out[i, j] = nobs[i, j]
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
@@ -9192,7 +9252,6 @@ def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -9227,7 +9286,6 @@ def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
         for j in range(K):
             out[i, j] = nobs[i, j]
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -9260,7 +9318,6 @@ def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -9295,7 +9352,6 @@ def group_count_bin_object(ndarray[object, ndim=2] out,
         for j in range(K):
             out[i, j] = nobs[i, j]
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
@@ -9328,7 +9384,6 @@ def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
     for i in range(ngroups):
         for j in range(K):
             out[i, j] = nobs[i, j]
-
 
 
 @cython.wraparound(False)
