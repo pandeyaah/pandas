@@ -131,7 +131,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
 
     table = hash_klass(size_hint or len(vals))
-    uniques = vec_klass()
+    uniques = vec_klass(len(vals))
     labels = table.get_labels(vals, uniques, 0, na_sentinel)
 
     labels = com._ensure_platform_int(labels)

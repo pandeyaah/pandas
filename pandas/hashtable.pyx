@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
@@ -98,14 +98,14 @@ cdef class Int64Vector(Vector):
     cdef:
         int64_t *data
 
-    def __cinit__(self):
+    def __cinit__(self, int64_t m = -1):
         self.n = 0
-        self.m = _INIT_VEC_CAP
-        self.ao = np.empty(_INIT_VEC_CAP, dtype=np.int64)
+        self.m = _INIT_VEC_CAP if m == -1 else m
+        self.ao = np.empty(self.m, dtype=np.int64)
         self.data = <int64_t*> self.ao.data
 
     cdef resize(self):
-        self.m = max(self.m * 2, _INIT_VEC_CAP)
+        self.m = max(self.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.m)
         self.data = <int64_t*> self.ao.data
 
