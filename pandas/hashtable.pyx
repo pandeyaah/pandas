@@ -1,3 +1,5 @@
+# cython: profile=True
+
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
