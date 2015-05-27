@@ -1840,23 +1840,33 @@ def is_monotonic_float64(ndarray[float64_t] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    with nogil:
+        prev = arr[0]
+        for i in range(1, n):
+            cur = arr[i]
+            if timelike and cur == iNaT:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if cur < prev:
+                is_monotonic_inc = 0
+            elif cur > prev:
+                is_monotonic_dec = 0
+            elif cur == prev:
+                is_unique = 0
+            else:
+                # cur or prev is NaN
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if not is_monotonic_inc and not is_monotonic_dec:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
 @cython.boundscheck(False)
@@ -1888,23 +1898,33 @@ def is_monotonic_float32(ndarray[float32_t] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    with nogil:
+        prev = arr[0]
+        for i in range(1, n):
+            cur = arr[i]
+            if timelike and cur == iNaT:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if cur < prev:
+                is_monotonic_inc = 0
+            elif cur > prev:
+                is_monotonic_dec = 0
+            elif cur == prev:
+                is_unique = 0
+            else:
+                # cur or prev is NaN
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if not is_monotonic_inc and not is_monotonic_dec:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
 @cython.boundscheck(False)
@@ -1936,11 +1956,15 @@ def is_monotonic_object(ndarray[object] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
+    
     prev = arr[0]
     for i in range(1, n):
         cur = arr[i]
         if timelike and cur == iNaT:
-            return False, False, None
+            is_unique = 0
+            is_monotonic_inc = 0
+            is_monotonic_dec = 0
+            break
         if cur < prev:
             is_monotonic_inc = 0
         elif cur > prev:
@@ -1949,9 +1973,15 @@ def is_monotonic_object(ndarray[object] arr, bint timelike):
             is_unique = 0
         else:
             # cur or prev is NaN
-            return False, False, None
+            is_unique = 0
+            is_monotonic_inc = 0
+            is_monotonic_dec = 0
+            break
         if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
+            is_unique = 0
+            is_monotonic_inc = 0
+            is_monotonic_dec = 0
+            break
         prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
@@ -1984,23 +2014,33 @@ def is_monotonic_int32(ndarray[int32_t] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    with nogil:
+        prev = arr[0]
+        for i in range(1, n):
+            cur = arr[i]
+            if timelike and cur == iNaT:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if cur < prev:
+                is_monotonic_inc = 0
+            elif cur > prev:
+                is_monotonic_dec = 0
+            elif cur == prev:
+                is_unique = 0
+            else:
+                # cur or prev is NaN
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if not is_monotonic_inc and not is_monotonic_dec:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
 @cython.boundscheck(False)
@@ -2032,23 +2072,33 @@ def is_monotonic_int64(ndarray[int64_t] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    with nogil:
+        prev = arr[0]
+        for i in range(1, n):
+            cur = arr[i]
+            if timelike and cur == iNaT:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if cur < prev:
+                is_monotonic_inc = 0
+            elif cur > prev:
+                is_monotonic_dec = 0
+            elif cur == prev:
+                is_unique = 0
+            else:
+                # cur or prev is NaN
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if not is_monotonic_inc and not is_monotonic_dec:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
 @cython.boundscheck(False)
@@ -2080,23 +2130,33 @@ def is_monotonic_bool(ndarray[uint8_t] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    with nogil:
+        prev = arr[0]
+        for i in range(1, n):
+            cur = arr[i]
+            if timelike and cur == iNaT:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if cur < prev:
+                is_monotonic_inc = 0
+            elif cur > prev:
+                is_monotonic_dec = 0
+            elif cur == prev:
+                is_unique = 0
+            else:
+                # cur or prev is NaN
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            if not is_monotonic_inc and not is_monotonic_dec:
+                is_unique = 0
+                is_monotonic_inc = 0
+                is_monotonic_dec = 0
+                break
+            prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 
 

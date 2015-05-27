@@ -609,23 +609,33 @@ def is_monotonic_%(name)s(ndarray[%(c_type)s] arr, bint timelike):
     if timelike and arr[0] == iNaT:
         return False, False, None
 
-    prev = arr[0]
-    for i in range(1, n):
-        cur = arr[i]
-        if timelike and cur == iNaT:
-            return False, False, None
-        if cur < prev:
-            is_monotonic_inc = 0
-        elif cur > prev:
-            is_monotonic_dec = 0
-        elif cur == prev:
-            is_unique = 0
-        else:
-            # cur or prev is NaN
-            return False, False, None
-        if not is_monotonic_inc and not is_monotonic_dec:
-            return False, False, None
-        prev = cur
+    %(nogil)s
+    %(tab)sprev = arr[0]
+    %(tab)sfor i in range(1, n):
+    %(tab)s    cur = arr[i]
+    %(tab)s    if timelike and cur == iNaT:
+    %(tab)s        is_unique = 0
+    %(tab)s        is_monotonic_inc = 0
+    %(tab)s        is_monotonic_dec = 0
+    %(tab)s        break
+    %(tab)s    if cur < prev:
+    %(tab)s        is_monotonic_inc = 0
+    %(tab)s    elif cur > prev:
+    %(tab)s        is_monotonic_dec = 0
+    %(tab)s    elif cur == prev:
+    %(tab)s        is_unique = 0
+    %(tab)s    else:
+    %(tab)s        # cur or prev is NaN
+    %(tab)s        is_unique = 0
+    %(tab)s        is_monotonic_inc = 0
+    %(tab)s        is_monotonic_dec = 0
+    %(tab)s        break
+    %(tab)s    if not is_monotonic_inc and not is_monotonic_dec:
+    %(tab)s        is_unique = 0
+    %(tab)s        is_monotonic_inc = 0
+    %(tab)s        is_monotonic_dec = 0
+    %(tab)s        break
+    %(tab)s    prev = cur
     return is_monotonic_inc, is_monotonic_dec, is_unique
 """
 
@@ -2462,22 +2472,24 @@ def generate_take_template(template, exclude=None):
 def generate_from_template(template, exclude=None):
     # name, ctype, capable of holding NA
     function_list = [
-        ('float64', 'float64_t', 'np.float64', True),
-        ('float32', 'float32_t', 'np.float32', True),
-        ('object', 'object', 'object', True),
-        ('int32', 'int32_t', 'np.int32', False),
-        ('int64', 'int64_t', 'np.int64', False),
-        ('bool', 'uint8_t', 'np.bool', False)
+        ('float64', 'float64_t', 'np.float64', True, True),
+        ('float32', 'float32_t', 'np.float32', True, True),
+        ('object', 'object', 'object', True, False),
+        ('int32', 'int32_t', 'np.int32', False, True),
+        ('int64', 'int64_t', 'np.int64', False, True),
+        ('bool', 'uint8_t', 'np.bool', False, True)
     ]
 
     output = StringIO()
-    for name, c_type, dtype, can_hold_na in function_list:
+    for name, c_type, dtype, can_hold_na, nogil in function_list:
         if exclude is not None and name in exclude:
             continue
 
         func = template % {'name': name, 'c_type': c_type,
                            'dtype': dtype,
-                           'raise_on_na': 'False' if can_hold_na else 'True'}
+                           'raise_on_na': 'False' if can_hold_na else 'True',
+                           'nogil' : 'with nogil:' if nogil else '',
+                           'tab' : '    ' if nogil else '' }
         output.write(func)
         output.write("\n")
     return output.getvalue()
