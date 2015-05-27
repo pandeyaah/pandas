@@ -1262,21 +1262,22 @@ def group_count_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    %(nogil)s
+    %(tab)sfor i in range(N):
+    %(tab)s    lab = labels[i]
+    %(tab)s    if lab < 0:
+    %(tab)s        continue
 
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
+    %(tab)s    counts[lab] += 1
+    %(tab)s    for j in range(K):
+    %(tab)s        val = values[i, j]
 
-            # not nan
-            nobs[lab, j] += val == val and val != iNaT
+    %(tab)s        # not nan
+    %(tab)s        nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(ncounts):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+    %(tab)sfor i in range(ncounts):
+    %(tab)s    for j in range(K):
+    %(tab)s        out[i, j] = nobs[i, j]
 """
 
 group_count_bin_template = """@cython.wraparound(False)
@@ -1297,20 +1298,21 @@ def group_count_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
+    %(nogil)s
+    %(tab)sfor i in range(N):
+    %(tab)s    while b < ngroups - 1 and i >= bins[b]:
+    %(tab)s        b += 1
 
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
+    %(tab)s    counts[b] += 1
+    %(tab)s    for j in range(K):
+    %(tab)s        val = values[i, j]
 
-            # not nan
-            nobs[b, j] += val == val and val != iNaT
+    %(tab)s        # not nan
+    %(tab)s        nobs[b, j] += val == val and val != iNaT
 
-    for i in range(ngroups):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+    %(tab)sfor i in range(ngroups):
+    %(tab)s    for j in range(K):
+    %(tab)s        out[i, j] = nobs[i, j]
 """
 
 # add passing bin edges, instead of labels
@@ -2312,19 +2314,19 @@ def put2d_%(name)s_%(dest_type)s(ndarray[%(c_type)s, ndim=2, cast=True] values,
 def generate_put_template(template, use_ints=True, use_floats=True,
                           use_objects=False, use_datelikes=False):
     floats_list = [
-        ('float64', 'float64_t', 'float64_t', 'np.float64'),
-        ('float32', 'float32_t', 'float32_t', 'np.float32'),
+        ('float64', 'float64_t', 'float64_t', 'np.float64', True),
+        ('float32', 'float32_t', 'float32_t', 'np.float32', True),
     ]
     ints_list = [
-        ('int8',  'int8_t',  'float32_t', 'np.float32'),
-        ('int16', 'int16_t', 'float32_t', 'np.float32'),
-        ('int32', 'int32_t', 'float64_t', 'np.float64'),
-        ('int64', 'int64_t', 'float64_t', 'np.float64'),
+        ('int8',  'int8_t',  'float32_t', 'np.float32', True),
+        ('int16', 'int16_t', 'float32_t', 'np.float32', True),
+        ('int32', 'int32_t', 'float64_t', 'np.float64', True),
+        ('int64', 'int64_t', 'float64_t', 'np.float64', True),
     ]
     date_like_list = [
-        ('int64', 'int64_t', 'float64_t', 'np.float64'),
+        ('int64', 'int64_t', 'float64_t', 'np.float64', True),
     ]
-    object_list = [('object', 'object', 'object', 'np.object_')]
+    object_list = [('object', 'object', 'object', 'np.object_', False)]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
@@ -2336,12 +2338,14 @@ def generate_put_template(template, use_ints=True, use_floats=True,
         function_list.extend(date_like_list)
 
     output = StringIO()
-    for name, c_type, dest_type, dest_dtype in function_list:
+    for name, c_type, dest_type, dest_dtype, nogil in function_list:
         func = template % {'name': name,
                            'c_type': c_type,
                            'dest_type': dest_type.replace('_t', ''),
                            'dest_type2': dest_type,
-                           'dest_dtype': dest_dtype}
+                           'dest_dtype': dest_dtype,
+                           'nogil' : 'with nogil:' if nogil else '',
+                           'tab' : '    ' if nogil else '' }
         output.write(func)
         output.write("\n")
     return output.getvalue()
@@ -2349,16 +2353,16 @@ def generate_put_template(template, use_ints=True, use_floats=True,
 def generate_put_min_max_template(template, use_ints=True, use_floats=True,
                                   use_objects=False, use_datelikes=False):
     floats_list = [
-        ('float64', 'float64_t', 'NAN', 'np.inf'),
-        ('float32', 'float32_t', 'NAN', 'np.inf'),
+        ('float64', 'float64_t', 'NAN', 'np.inf', True),
+        ('float32', 'float32_t', 'NAN', 'np.inf', True),
     ]
     ints_list = [
-        ('int64', 'int64_t', 'iNaT', _int64_max),
+        ('int64', 'int64_t', 'iNaT', _int64_max, True),
     ]
     date_like_list = [
-        ('int64', 'int64_t', 'iNaT', _int64_max),
+        ('int64', 'int64_t', 'iNaT', _int64_max, True),
     ]
-    object_list = [('object', 'object', 'np.nan', 'np.inf')]
+    object_list = [('object', 'object', 'np.nan', 'np.inf', False)]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
@@ -2370,11 +2374,13 @@ def generate_put_min_max_template(template, use_ints=True, use_floats=True,
         function_list.extend(date_like_list)
 
     output = StringIO()
-    for name, dest_type, nan_val, inf_val in function_list:
+    for name, dest_type, nan_val, inf_val, nogil in function_list:
         func = template % {'name': name,
                            'dest_type2': dest_type,
                            'nan_val': nan_val,
-                           'inf_val': inf_val}
+                           'inf_val': inf_val,
+                           'nogil' : "with nogil:" if nogil else '',
+                           'tab' : '    ' if nogil else '' }
         output.write(func)
         output.write("\n")
     return output.getvalue()
@@ -2382,16 +2388,16 @@ def generate_put_min_max_template(template, use_ints=True, use_floats=True,
 def generate_put_selection_template(template, use_ints=True, use_floats=True,
                                     use_objects=False, use_datelikes=False):
     floats_list = [
-        ('float64', 'float64_t', 'float64_t', 'NAN'),
-        ('float32', 'float32_t', 'float32_t', 'NAN'),
+        ('float64', 'float64_t', 'float64_t', 'NAN', True),
+        ('float32', 'float32_t', 'float32_t', 'NAN', True),
     ]
     ints_list = [
-        ('int64', 'int64_t', 'int64_t', 'iNaT'),
+        ('int64', 'int64_t', 'int64_t', 'iNaT', True),
     ]
     date_like_list = [
-        ('int64', 'int64_t', 'int64_t', 'iNaT'),
+        ('int64', 'int64_t', 'int64_t', 'iNaT', True),
     ]
-    object_list = [('object', 'object', 'object', 'np.nan')]
+    object_list = [('object', 'object', 'object', 'np.nan', False)]
     function_list = []
     if use_floats:
         function_list.extend(floats_list)
@@ -2403,11 +2409,13 @@ def generate_put_selection_template(template, use_ints=True, use_floats=True,
         function_list.extend(date_like_list)
 
     output = StringIO()
-    for name, c_type, dest_type, nan_val in function_list:
+    for name, c_type, dest_type, nan_val, nogil in function_list:
         func = template % {'name': name,
                            'c_type': c_type,
                            'dest_type2': dest_type,
-                           'nan_val': nan_val}
+                           'nan_val': nan_val,
+                           'nogil' : "with nogil:" if nogil else "",
+                           'tab' : '    ' if nogil else '' }
         output.write(func)
         output.write("\n")
     return output.getvalue()

@@ -9059,21 +9059,22 @@ def group_count_float64(ndarray[float64_t, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[lab, j] += val == val and val != iNaT
+                # not nan
+                nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(ncounts):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -9095,21 +9096,22 @@ def group_count_float32(ndarray[float32_t, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[lab, j] += val == val and val != iNaT
+                # not nan
+                nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(ncounts):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -9131,21 +9133,22 @@ def group_count_int64(ndarray[int64_t, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[lab, j] += val == val and val != iNaT
+                # not nan
+                nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(ncounts):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -9167,6 +9170,7 @@ def group_count_object(ndarray[object, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
+    
     for i in range(N):
         lab = labels[i]
         if lab < 0:
@@ -9203,21 +9207,22 @@ def group_count_int64(ndarray[int64_t, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
 
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[lab, j] += val == val and val != iNaT
+                # not nan
+                nobs[lab, j] += val == val and val != iNaT
 
-    for i in range(ncounts):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 
 @cython.wraparound(False)
@@ -9238,20 +9243,21 @@ def group_count_bin_float64(ndarray[float64_t, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
+    with nogil:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
 
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[b, j] += val == val and val != iNaT
+                # not nan
+                nobs[b, j] += val == val and val != iNaT
 
-    for i in range(ngroups):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -9271,20 +9277,21 @@ def group_count_bin_float32(ndarray[float32_t, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
+    with nogil:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
 
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[b, j] += val == val and val != iNaT
+                # not nan
+                nobs[b, j] += val == val and val != iNaT
 
-    for i in range(ngroups):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -9304,20 +9311,21 @@ def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
+    with nogil:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
 
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[b, j] += val == val and val != iNaT
+                # not nan
+                nobs[b, j] += val == val and val != iNaT
 
-    for i in range(ngroups):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -9337,6 +9345,7 @@ def group_count_bin_object(ndarray[object, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
+    
     for i in range(N):
         while b < ngroups - 1 and i >= bins[b]:
             b += 1
@@ -9370,20 +9379,21 @@ def group_count_bin_int64(ndarray[int64_t, ndim=2] out,
 
     ngroups = len(bins) + (bins[len(bins) - 1] != N)
 
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
+    with nogil:
+        for i in range(N):
+            while b < ngroups - 1 and i >= bins[b]:
+                b += 1
 
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
+            counts[b] += 1
+            for j in range(K):
+                val = values[i, j]
 
-            # not nan
-            nobs[b, j] += val == val and val != iNaT
+                # not nan
+                nobs[b, j] += val == val and val != iNaT
 
-    for i in range(ngroups):
-        for j in range(K):
-            out[i, j] = nobs[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                out[i, j] = nobs[i, j]
 
 
 @cython.wraparound(False)
