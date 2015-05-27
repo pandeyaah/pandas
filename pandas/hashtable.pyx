@@ -7,6 +7,7 @@ from util cimport _checknan
 cimport util
 
 import numpy as np
+nan = np.nan
 
 cdef extern from "numpy/npy_math.h":
     double NAN "NPY_NAN"
@@ -710,7 +711,7 @@ cdef class PyObjectHashTable(HashTable):
                     uniques.append(val)
             elif not seen_na:
                 seen_na = 1
-                uniques.append(NAN)
+                uniques.append(nan)
 
         result = uniques.to_array()
 
