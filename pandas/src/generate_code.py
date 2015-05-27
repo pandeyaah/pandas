@@ -1357,41 +1357,42 @@ def group_min_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        if val < minx[b, j]:
+                            minx[b, j] = val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    if val < minx[b, j]:
-                        minx[b, j] = val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    if val < minx[b, 0]:
+                        minx[b, 0] = val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                if val < minx[b, 0]:
-                    minx[b, 0] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = %(nan_val)s
-            else:
-                out[i, j] = minx[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = %(nan_val)s
+                else:
+                    out[i, j] = minx[i, j]
 """
 
 group_max_template = """@cython.wraparound(False)
@@ -1404,7 +1405,7 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] maxx, nobs
 
@@ -1418,42 +1419,43 @@ def group_max_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+    with nogil:
+        if K > 1:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        if val > maxx[lab, j]:
+                            maxx[lab, j] = val
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    if val > maxx[lab, j]:
-                        maxx[lab, j] = val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    if val > maxx[lab, 0]:
+                        maxx[lab, 0] = val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                if val > maxx[lab, 0]:
-                    maxx[lab, 0] = val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = %(nan_val)s
-            else:
-                out[i, j] = maxx[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = %(nan_val)s
+                else:
+                    out[i, j] = maxx[i, j]
 """
 
 group_max_bin_template = """@cython.wraparound(False)
@@ -1481,41 +1483,42 @@ def group_max_bin_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    b = 0
-    if K > 1:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+    with nogil:
+        b = 0
+        if K > 1:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
 
-            counts[b] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[b] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[b, j] += 1
+                        if val > maxx[b, j]:
+                            maxx[b, j] = val
+        else:
+            for i in range(N):
+                while b < ngroups - 1 and i >= bins[b]:
+                    b += 1
+
+                counts[b] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[b, j] += 1
-                    if val > maxx[b, j]:
-                        maxx[b, j] = val
-    else:
-        for i in range(N):
-            while b < ngroups - 1 and i >= bins[b]:
-                b += 1
+                    nobs[b, 0] += 1
+                    if val > maxx[b, 0]:
+                        maxx[b, 0] = val
 
-            counts[b] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[b, 0] += 1
-                if val > maxx[b, 0]:
-                    maxx[b, 0] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = %(nan_val)s
-            else:
-                out[i, j] = maxx[i, j]
+        for i in range(ngroups):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = %(nan_val)s
+                else:
+                    out[i, j] = maxx[i, j]
 """
 
 
@@ -1529,7 +1532,7 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
     Only aggregates on axis=0
     '''
     cdef:
-        Py_ssize_t i, j, N, K, lab
+        Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         %(dest_type2)s val, count
         ndarray[%(dest_type2)s, ndim=2] minx, nobs
 
@@ -1543,42 +1546,43 @@ def group_min_%(name)s(ndarray[%(dest_type2)s, ndim=2] out,
 
     N, K = (<object> values).shape
 
-    if K > 1:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+    with nogil:
+        if K > 1:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
 
-            counts[lab] += 1
-            for j in range(K):
-                val = values[i, j]
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    # not nan
+                    if val == val:
+                        nobs[lab, j] += 1
+                        if val < minx[lab, j]:
+                            minx[lab, j] = val
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                val = values[i, 0]
 
                 # not nan
                 if val == val:
-                    nobs[lab, j] += 1
-                    if val < minx[lab, j]:
-                        minx[lab, j] = val
-    else:
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
+                    nobs[lab, 0] += 1
+                    if val < minx[lab, 0]:
+                        minx[lab, 0] = val
 
-            counts[lab] += 1
-            val = values[i, 0]
-
-            # not nan
-            if val == val:
-                nobs[lab, 0] += 1
-                if val < minx[lab, 0]:
-                    minx[lab, 0] = val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = %(nan_val)s
-            else:
-                out[i, j] = minx[i, j]
+        for i in range(ncounts):
+            for j in range(K):
+                if nobs[i, j] == 0:
+                    out[i, j] = %(nan_val)s
+                else:
+                    out[i, j] = minx[i, j]
 """
 
 
