@@ -142,9 +142,7 @@ cdef class Float64Vector(Vector):
 
 
 cdef class HashTable:
-
-    def __len__(self):
-        return self.table.size
+    pass
 
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table
