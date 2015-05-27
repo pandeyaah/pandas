@@ -89,6 +89,7 @@ cdef class IndexEngine:
         self.monotonic_check = 0
 
         self.unique = 0
+        self.unique_check = 0
         self.monotonic_inc = 0
         self.monotonic_dec = 0
 
@@ -232,14 +233,10 @@ cdef class IndexEngine:
             values = self._get_index_values()
             self.monotonic_inc, self.monotonic_dec, unique = \
                 self._call_monotonic(values)
-
-            if unique is not None:
-                self.unique = unique
-                self.unique_check = 1
-
         except TypeError:
             self.monotonic_inc = 0
             self.monotonic_dec = 0
+
         self.monotonic_check = 1
 
     cdef _get_index_values(self):
@@ -269,8 +266,7 @@ cdef class IndexEngine:
 
         if len(self.mapping) == len(values):
             self.unique = 1
-            self.unique_check = 1
-
+        self.unique_check = 1
         self.initialized = 1
 
     def clear_mapping(self):
