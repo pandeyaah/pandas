@@ -4,7 +4,7 @@ from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
-from libc.stdlib cimport malloc, free
+from cpython cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 from util cimport _checknan
 cimport util
@@ -103,7 +103,7 @@ cdef class Int64Vector:
         ndarray ao
 
     def __cinit__(self):
-        self.data = <Int64VectorData *>malloc(sizeof(Int64VectorData))
+        self.data = <Int64VectorData *>PyMem_Malloc(sizeof(Int64VectorData))
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype=np.int64)
@@ -115,7 +115,7 @@ cdef class Int64Vector:
         self.data.data = <int64_t*> self.ao.data
 
     def __dealloc__(self):
-        free(self.data)
+        PyMem_Free(self.data)
 
     def __len__(self):
         return self.data.n
