@@ -4,7 +4,6 @@ from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
-from cpython cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 from util cimport _checknan
 cimport util
@@ -29,6 +28,7 @@ cdef extern from "datetime.h":
     void PyDateTime_IMPORT()
 
 PyDateTime_IMPORT
+from libc.stdlib import malloc, free, realloc
 
 cdef extern from "Python.h":
     int PySlice_Check(object)
@@ -36,10 +36,10 @@ cdef extern from "Python.h":
 cdef size_t _INIT_VEC_CAP = 32
 
 def list_to_object_array(list obj):
-    '''
+    """
     Convert list to object ndarray. Seriously can't believe I had to write this
     function
-    '''
+    """
     cdef:
         Py_ssize_t i, n
         ndarray[object] arr
@@ -84,52 +84,67 @@ cdef class ObjectVector(Vector):
         return self.ao
 
 
-ctypedef struct Int64VectorData:
+##### Int64Vector using a c-impl ######
+
+cdef struct Int64VectorData:
     int64_t *data
     size_t n, m
 
-cdef uint8_t Int64VectorData_needs_resize(Int64VectorData *data) nogil:
-    return data.n == data.m
+cdef Int64VectorData *Int64VectorData_init() nogil:
+    cdef:
+        Int64VectorData *d
+    d = <Int64VectorData *>malloc(sizeof(Int64VectorData))
+    d.n = 0
+    d.m = _INIT_VEC_CAP
+    d.data = <int64_t*>malloc(sizeof(int64_t)*d.m)
+    return d
 
-cdef void Int64VectorData_append(Int64VectorData *data, int64_t x) nogil:
+cdef uint8_t Int64VectorData_needs_resize(Int64VectorData *d) nogil:
+    return d.n == d.m
 
-    data.data[data.n] = x
-    data.n += 1
+cdef void Int64VectorData_resize(Int64VectorData *d) nogil:
+    d.m = max(d.m * 4, _INIT_VEC_CAP)
+    realloc(d.data, sizeof(int64_t)*d.m)
+
+cdef void Int64VectorData_append(Int64VectorData *d, int64_t x) nogil:
+    if d.n == d.m:
+        Int64VectorData_resize(d)
+
+    d.data[d.n] = x
+    d.n += 1
+
+cdef void Int64VectorData_free(Int64VectorData *d) nogil:
+    free(d.data)
 
 cdef class Int64Vector:
 
     cdef:
         Int64VectorData *data
-        ndarray ao
 
     def __cinit__(self):
-        self.data = <Int64VectorData *>PyMem_Malloc(sizeof(Int64VectorData))
-        self.data.n = 0
-        self.data.m = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.m, dtype=np.int64)
-        self.data.data = <int64_t*> self.ao.data
-
-    cdef resize(self):
-        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.data.m)
-        self.data.data = <int64_t*> self.ao.data
+        self.data = Int64VectorData_init()
 
     def __dealloc__(self):
-        PyMem_Free(self.data)
+        Int64VectorData_free(self.data)
+        free(self.data)
 
     def __len__(self):
         return self.data.n
 
     def to_array(self):
-        self.ao.resize(self.data.n)
-        self.data.m = self.data.n
-        return self.ao
+        cdef:
+            npy_intp shape[1]
+            Int64VectorData *d
+
+        d = self.data
+        d.m = d.n
+        Int64VectorData_resize(d)
+
+        shape[0] = <npy_intp> d.m
+        return PyArray_SimpleNewFromData(1, shape,
+                                         np.NPY_INT64, d.data)
 
     cdef inline void append(self, int64_t x):
-
-        if Int64VectorData_needs_resize(self.data):
-            self.resize()
-
         Int64VectorData_append(self.data, x)
 
 cdef class Float64Vector(Vector):
@@ -397,10 +412,6 @@ cdef class Int64HashTable(HashTable):
                 else:
                     k = kh_put_int64(self.table, val, &ret)
                     self.table.vals[k] = count
-
-                    if Int64VectorData_needs_resize(ud):
-                        with gil:
-                            uniques.resize()
                     Int64VectorData_append(ud, val)
                     labels[i] = count
                     count += 1
@@ -438,10 +449,6 @@ cdef class Int64HashTable(HashTable):
                 else:
                     k = kh_put_int64(self.table, val, &ret)
                     self.table.vals[k] = count
-
-                    if Int64VectorData_needs_resize(ud):
-                        with gil:
-                            uniques.resize()
                     Int64VectorData_append(ud, val)
                     labels[i] = count
                     count += 1
