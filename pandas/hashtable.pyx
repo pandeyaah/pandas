@@ -4,6 +4,7 @@ from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
 from khash cimport *
 from numpy cimport *
+from libc.stdlib cimport malloc, free
 
 from util cimport _checknan
 cimport util
@@ -33,7 +34,6 @@ cdef extern from "Python.h":
     int PySlice_Check(object)
 
 cdef size_t _INIT_VEC_CAP = 32
-cdef size_t _USE_GIL = 1000000
 
 def list_to_object_array(list obj):
     '''
@@ -52,30 +52,15 @@ def list_to_object_array(list obj):
 
     return arr
 
-
 cdef class Vector:
-
-    cdef:
-        size_t n, m
-        ndarray ao
-
-    def __len__(self):
-        return self.n
-
-    cdef inline uint8_t needs_resize(self) nogil:
-        # if we need to resize
-        return self.n == self.m
-
-    def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
-        return self.ao
-
+    pass
 
 cdef class ObjectVector(Vector):
 
     cdef:
         PyObject **data
+        size_t n, m
+        ndarray ao
 
     def __cinit__(self):
         self.n = 0
@@ -93,44 +78,66 @@ cdef class ObjectVector(Vector):
         self.data[self.n] = <PyObject*> o
         self.n += 1
 
+    def to_array(self):
+        self.ao.resize(self.n)
+        self.m = self.n
+        return self.ao
 
-cdef class Int64Vector(Vector):
+
+ctypedef struct Int64VectorData:
+    int64_t *data
+    size_t n, m
+
+cdef uint8_t Int64VectorData_needs_resize(Int64VectorData *data) nogil:
+    return data.n == data.m
+
+cdef void Int64VectorData_append(Int64VectorData *data, int64_t x) nogil:
+
+    data.data[data.n] = x
+    data.n += 1
+
+cdef class Int64Vector:
 
     cdef:
-        int64_t *data
+        Int64VectorData *data
+        ndarray ao
 
-    def __cinit__(self, int64_t m = -1):
-        self.n = 0
-        self.m = _INIT_VEC_CAP if m == -1 else m
-        self.ao = np.empty(self.m, dtype=np.int64)
-        self.data = <int64_t*> self.ao.data
+    def __cinit__(self):
+        self.data = <Int64VectorData *>malloc(sizeof(Int64VectorData))
+        self.data.n = 0
+        self.data.m = _INIT_VEC_CAP
+        self.ao = np.empty(self.data.m, dtype=np.int64)
+        self.data.data = <int64_t*> self.ao.data
 
     cdef resize(self):
-        self.m = max(self.m * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.m)
-        self.data = <int64_t*> self.ao.data
+        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(self.data.m)
+        self.data.data = <int64_t*> self.ao.data
 
-    cdef inline void append_nogil(self, int64_t x) nogil:
+    def __dealloc__(self):
+        free(self.data)
 
-        if self.needs_resize():
-            with gil:
-                self.resize()
+    def __len__(self):
+        return self.data.n
 
-        self.data[self.n] = x
-        self.n += 1
+    def to_array(self):
+        self.ao.resize(self.data.n)
+        self.data.m = self.data.n
+        return self.ao
 
     cdef inline void append(self, int64_t x):
 
-        if self.needs_resize():
+        if Int64VectorData_needs_resize(self.data):
             self.resize()
 
-        self.data[self.n] = x
-        self.n += 1
+        Int64VectorData_append(self.data, x)
 
 cdef class Float64Vector(Vector):
 
     cdef:
         float64_t *data
+        size_t n, m
+        ndarray ao
 
     def __cinit__(self):
         self.n = 0
@@ -144,12 +151,17 @@ cdef class Float64Vector(Vector):
         self.data = <float64_t*> self.ao.data
 
     cdef inline void append(self, float64_t x) nogil:
-        if self.needs_resize():
+        if self.n == self.m:
             with gil:
                 self.resize()
 
         self.data[self.n] = x
         self.n += 1
+
+    def to_array(self):
+        self.ao.resize(self.n)
+        self.m = self.n
+        return self.ao
 
 
 cdef class HashTable:
@@ -370,25 +382,12 @@ cdef class Int64HashTable(HashTable):
             int ret = 0
             int64_t val
             khiter_t k
+            Int64VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
 
-        if n > _USE_GIL:
-            with nogil:
-                for i in range(n):
-                    val = values[i]
-                    k = kh_get_int64(self.table, val)
-                    if k != self.table.n_buckets:
-                        idx = self.table.vals[k]
-                        labels[i] = idx
-                    else:
-                        k = kh_put_int64(self.table, val, &ret)
-                        self.table.vals[k] = count
-                        uniques.append_nogil(val)
-                        labels[i] = count
-                        count += 1
-
-        else:
+        with nogil:
             for i in range(n):
                 val = values[i]
                 k = kh_get_int64(self.table, val)
@@ -398,7 +397,11 @@ cdef class Int64HashTable(HashTable):
                 else:
                     k = kh_put_int64(self.table, val, &ret)
                     self.table.vals[k] = count
-                    uniques.append(val)
+
+                    if Int64VectorData_needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    Int64VectorData_append(ud, val)
                     labels[i] = count
                     count += 1
 
@@ -414,8 +417,10 @@ cdef class Int64HashTable(HashTable):
             int64_t val
             khiter_t k
             Int64Vector uniques = Int64Vector()
+            Int64VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
+        ud = uniques.data
 
         with nogil:
             for i in range(n):
@@ -433,7 +438,11 @@ cdef class Int64HashTable(HashTable):
                 else:
                     k = kh_put_int64(self.table, val, &ret)
                     self.table.vals[k] = count
-                    uniques.append_nogil(val)
+
+                    if Int64VectorData_needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    Int64VectorData_append(ud, val)
                     labels[i] = count
                     count += 1
 
@@ -451,13 +460,12 @@ cdef class Int64HashTable(HashTable):
             khiter_t k
             Int64Vector uniques = Int64Vector()
 
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                k = kh_get_int64(self.table, val)
-                if k == self.table.n_buckets:
-                    kh_put_int64(self.table, val, &ret)
-                    uniques.append_nogil(val)
+        for i in range(n):
+            val = values[i]
+            k = kh_get_int64(self.table, val)
+            if k == self.table.n_buckets:
+                kh_put_int64(self.table, val, &ret)
+                uniques.append(val)
 
         result = uniques.to_array()
 
@@ -521,24 +529,23 @@ cdef class Float64HashTable(HashTable):
 
         labels = np.empty(n, dtype=np.int64)
 
-        with nogil:
-            for i in range(n):
-                val = values[i]
+        for i in range(n):
+            val = values[i]
 
-                if val != val:
-                    labels[i] = na_sentinel
-                    continue
+            if val != val:
+                labels[i] = na_sentinel
+                continue
 
-                k = kh_get_float64(self.table, val)
-                if k != self.table.n_buckets:
-                    idx = self.table.vals[k]
-                    labels[i] = idx
-                else:
-                    k = kh_put_float64(self.table, val, &ret)
-                    self.table.vals[k] = count
-                    uniques.append(val)
-                    labels[i] = count
-                    count += 1
+            k = kh_get_float64(self.table, val)
+            if k != self.table.n_buckets:
+                idx = self.table.vals[k]
+                labels[i] = idx
+            else:
+                k = kh_put_float64(self.table, val, &ret)
+                self.table.vals[k] = count
+                uniques.append(val)
+                labels[i] = count
+                count += 1
 
         return labels
 
@@ -584,18 +591,17 @@ cdef class Float64HashTable(HashTable):
             Float64Vector uniques = Float64Vector()
             bint seen_na = 0
 
-        with nogil:
-            for i in range(n):
-                val = values[i]
+        for i in range(n):
+            val = values[i]
 
-                if val == val:
-                    k = kh_get_float64(self.table, val)
-                    if k == self.table.n_buckets:
-                        kh_put_float64(self.table, val, &ret)
-                        uniques.append(val)
-                elif not seen_na:
-                    seen_na = 1
-                    uniques.append(NAN)
+            if val == val:
+                k = kh_get_float64(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_float64(self.table, val, &ret)
+                    uniques.append(val)
+            elif not seen_na:
+                seen_na = 1
+                uniques.append(NAN)
 
         return uniques.to_array()
 
