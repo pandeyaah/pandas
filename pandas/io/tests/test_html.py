@@ -266,25 +266,25 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         with open(self.spam_data) as f:
             data2 = StringIO(f.read())
 
-        df1 = self.read_html(data1, '.*Water.*')
-        df2 = self.read_html(data2, 'Unit')
+        df1 = self.read_html(data1, '.*Water.*', encoding='utf-8')
+        df2 = self.read_html(data2, 'Unit', encoding='utf-8')
         assert_framelist_equal(df1, df2)
 
     def test_string(self):
         with open(self.spam_data) as f:
             data = f.read()
 
-        df1 = self.read_html(data, '.*Water.*')
-        df2 = self.read_html(data, 'Unit')
+        df1 = self.read_html(data, '.*Water.*', encoding='utf-8')
+        df2 = self.read_html(data, 'Unit', encoding='utf-8')
 
         assert_framelist_equal(df1, df2)
 
     def test_file_like(self):
         with open(self.spam_data) as f:
-            df1 = self.read_html(f, '.*Water.*')
+            df1 = self.read_html(f, '.*Water.*', encoding='utf-8')
 
         with open(self.spam_data) as f:
-            df2 = self.read_html(f, 'Unit')
+            df2 = self.read_html(f, 'Unit', encoding='utf-8')
 
         assert_framelist_equal(df1, df2)
 
@@ -426,10 +426,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         res1 = self.read_html(StringIO(data1))
         res2 = self.read_html(StringIO(data2))
         assert_framelist_equal(res1, res2)
-    
+
     def test_tfoot_read(self):
         """
-        Make sure that read_html reads tfoot, containing td or th. 
+        Make sure that read_html reads tfoot, containing td or th.
         Ignores empty tfoot
         """
         data_template = '''<table>
@@ -452,10 +452,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
         data1 = data_template.format(footer = "")
         data2 = data_template.format(footer ="<tr><td>footA</td><th>footB</th></tr>")
-    
+
         d1 = {'A': ['bodyA'], 'B': ['bodyB']}
         d2 = {'A': ['bodyA', 'footA'], 'B': ['bodyB', 'footB']}
-    
+
         tm.assert_frame_equal(self.read_html(data1)[0], DataFrame(d1))
         tm.assert_frame_equal(self.read_html(data2)[0], DataFrame(d2))
 
