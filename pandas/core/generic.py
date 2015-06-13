@@ -1878,7 +1878,9 @@ class NDFrame(PandasObject):
         if copy and new_data is self._data:
             new_data = new_data.copy()
 
-        return self._constructor(new_data).__finalize__(self)
+        result = self._constructor(new_data).__finalize__(self)
+        result._set_is_copy(self, copy=copy and not result._is_view)
+        return result
 
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
@@ -1886,8 +1888,10 @@ class NDFrame(PandasObject):
 
         if new_data is self._data and not copy:
             return self
-        else:
-            return self._constructor(new_data).__finalize__(self)
+
+        result = self._constructor(new_data).__finalize__(self)
+        result._set_is_copy(self, copy=copy and not result._is_view)
+        return result
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """

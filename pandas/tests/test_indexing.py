@@ -2331,14 +2331,14 @@ class TestIndexing(tm.TestCase):
         assert_frame_equal(df,expected)
 
         # GH10280
-        df = DataFrame(np.arange(6,dtype='int64').reshape(2, 3), 
+        df = DataFrame(np.arange(6,dtype='int64').reshape(2, 3),
                        index=list('ab'),
                        columns=['foo', 'bar', 'baz'])
 
         for val in [3.14, 'wxyz']:
             left = df.copy()
             left.loc['a', 'bar'] = val
-            right = DataFrame([[0, val, 2], [3, 4, 5]], 
+            right = DataFrame([[0, val, 2], [3, 4, 5]],
                               index=list('ab'),
                               columns=['foo', 'bar', 'baz'])
 
@@ -2346,12 +2346,12 @@ class TestIndexing(tm.TestCase):
             self.assertTrue(com.is_integer_dtype(left['foo']))
             self.assertTrue(com.is_integer_dtype(left['baz']))
 
-        left = DataFrame(np.arange(6,dtype='int64').reshape(2, 3) / 10.0, 
+        left = DataFrame(np.arange(6,dtype='int64').reshape(2, 3) / 10.0,
                          index=list('ab'),
                          columns=['foo', 'bar', 'baz'])
         left.loc['a', 'bar'] = 'wxyz'
 
-        right = DataFrame([[0, 'wxyz', .2], [.3, .4, .5]], 
+        right = DataFrame([[0, 'wxyz', .2], [.3, .4, .5]],
                           index=list('ab'),
                           columns=['foo', 'bar', 'baz'])
 
@@ -3865,6 +3865,32 @@ class TestIndexing(tm.TestCase):
 
         # this should not raise
         df2['y'] = ['g', 'h', 'i']
+
+    def test_setting_with_copy_reindexing(self):
+
+        df = DataFrame()
+        df['f'] = [None, None]
+        df['s'] = [None, None]
+        df['t'] = [None, None]
+
+        # not a copy
+        result = df.loc[:,'f']
+        self.assertIsNone(result.is_copy)
+        df.loc[:,'f'].fillna(-1,inplace=True)
+
+        # copy
+        result = df.loc[:,['f','s']]
+        self.assertIsNotNone(result.is_copy)
+
+        # inplace chained op
+        df = DataFrame()
+        df['f'] = [None, None]
+        df['s'] = [None, None]
+        df['t'] = [None, None]
+
+        def f():
+            df.loc[:,['f','s']].fillna(-1,inplace=True)
+        self.assertRaises(com.SettingWithCopyError, f)
 
     def test_detect_chained_assignment_warnings(self):
 

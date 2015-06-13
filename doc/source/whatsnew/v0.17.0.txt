@@ -58,3 +58,18 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ - Not showing a ``SettingWithCopy`` warning when an index operation needs to reindex, on ``object`` dtypes (:issue:`10342`)
