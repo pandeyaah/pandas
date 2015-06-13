@@ -2428,6 +2428,12 @@ class NDFrame(PandasObject):
         -------
         copy : type of caller
         """
+
+        # if we are actually a copy already, just return
+        if not deep and self.is_copy is not None:
+            self.is_copy = None
+            return self
+
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 

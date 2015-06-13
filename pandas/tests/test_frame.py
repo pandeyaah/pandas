@@ -5874,7 +5874,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         frame_copy = self.frame.reindex(self.frame.index[::2])
 
         del frame_copy['D']
-        frame_copy['C'][:5] = nan
+        def f():
+            frame_copy['C'][:5] = nan
+        self.assertRaises(com.SettingWithCopyError, f)
 
         added = self.frame + frame_copy
         tm.assert_dict_equal(added['A'].valid(),
@@ -8064,7 +8066,7 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertRaises(ValueError, self.tsframe.fillna, 5, method='ffill')
 
         # mixed numeric (but no float16)
-        mf = self.mixed_float.reindex(columns=['A','B','D'])
+        mf = self.mixed_float.reindex(columns=['A','B','D']).copy()
         mf.ix[-10:,'A'] = nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype = dict(C = None))
@@ -11235,7 +11237,9 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         self.assertTrue((combined['A'][:10] == 1).all())
 
         # reverse overlap
-        tail['A'][:10] = 0
+        def f():
+            tail['A'][:10] = 0
+        self.assertRaises(com.SettingWithCopyError, f)
         combined = tail.combine_first(head)
         self.assertTrue((combined['A'][:10] == 0).all())
 
