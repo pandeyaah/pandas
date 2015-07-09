@@ -95,6 +95,14 @@ matrix:
       - NUMPY_BUILD=master
       - BUILD_TYPE=pydata
       - PANDAS_TESTING_MODE="deprecate"
+    - python: nightly
+      env:
+      - NOSE_ARGS="not slow and not network and not disabled"
+      - FULL_DEPS=true
+      - JOB_TAG=_35
+      - CLIPBOARD=xsel
+      - BUILD_TYPE=conda
+      - JOB_NAME: "35_slow"
     allow_failures:
       - python: 2.7
         env:
@@ -138,6 +146,14 @@ matrix:
         - JOB_NAME: "27_build_test"
         - JOB_TAG=_BUILD_TEST
         - BUILD_TEST=true
+      - python: nightly
+        env:
+        - NOSE_ARGS="not slow and not network and not disabled"
+        - FULL_DEPS=true
+        - JOB_TAG=_35
+        - CLIPBOARD=xsel
+        - BUILD_TYPE=conda
+        - JOB_NAME: "35_slow"
 
 before_install:
   - echo "before_install"
