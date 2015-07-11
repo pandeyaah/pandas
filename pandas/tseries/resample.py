@@ -68,7 +68,6 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
         self.base = base
-
         # always sort time groupers
         kwargs['sort'] = True
 
@@ -160,7 +159,7 @@ class TimeGrouper(Grouper):
         first, last = _get_range_edges(first, last, self.freq, closed=self.closed,
                                        base=self.base)
         tz = ax.tz
-        binner = labels = DatetimeIndex(freq=self.freq,
+        einner = labels = DatetimeIndex(freq=self.freq,
                                         start=first.replace(tzinfo=None),
                                         end=last.replace(tzinfo=None),
                                         tz=tz,
@@ -324,6 +323,14 @@ class TimeGrouper(Grouper):
 
                 result.index = result.index + loffset
 
+        min_base = (type(self.freq))(0)
+        base_freq = (type(self.freq))(self.base)
+        if (base_freq < min_base) or (base_freq > self.freq):
+            raise Exception("Value of self.base must be between 0 and {freq}, "
+                    "got {base} instead".format(freq=self.freq.n, base=self.base))
+
+        result.index = result.index.shift(self.base, type(self.freq)(1))
+                
         return result
 
     def _resample_periods(self):
