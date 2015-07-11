@@ -159,7 +159,7 @@ class TimeGrouper(Grouper):
         first, last = _get_range_edges(first, last, self.freq, closed=self.closed,
                                        base=self.base)
         tz = ax.tz
-        einner = labels = DatetimeIndex(freq=self.freq,
+        binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first.replace(tzinfo=None),
                                         end=last.replace(tzinfo=None),
                                         tz=tz,
