@@ -329,7 +329,7 @@ class TimeGrouper(Grouper):
             raise Exception("Value of base must be between 0 and {freq}, got "
                     "{base} instead".format(freq=self.freq.n, base=self.base))
 
-        result.index = result.index.shift(self.base, type(self.freq)(1))
+        result.index = result.index.shift(self.base, freq = type(self.freq)(1))
                 
         return result
 
