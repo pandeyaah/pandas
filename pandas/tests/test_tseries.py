@@ -432,9 +432,6 @@ def test_resample_with_timedeltaindex():
     resample = df.resample('10s', base = 5)
     assert_almost_equal(resample.index[0].seconds, 5)
 
-    with tm.assertRaises(Exception):
-        df.resample('10s', base=15)
-
 class TestBinGroupers(tm.TestCase):
     _multiprocess_can_split_ = True
 
