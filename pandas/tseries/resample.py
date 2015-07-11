@@ -325,9 +325,9 @@ class TimeGrouper(Grouper):
 
         min_base = (type(self.freq))(0)
         base_freq = (type(self.freq))(self.base)
-        if (base_freq <= min_base) or (base_freq > self.freq):
-            raise Exception("Value of self.base must be between 0 and {freq}, "
-                    "got {base} instead".format(freq=self.freq.n, base=self.base))
+        if (base_freq < min_base) or (base_freq > self.freq):
+            raise Exception("Value of base must be between 0 and {freq}, got "
+                    "{base} instead".format(freq=self.freq.n, base=self.base))
 
         result.index = result.index.shift(self.base, type(self.freq)(1))
                 
