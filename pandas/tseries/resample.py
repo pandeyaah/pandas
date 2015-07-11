@@ -323,8 +323,13 @@ class TimeGrouper(Grouper):
 
                 result.index = result.index + loffset
 
-        if self.base > 0:
-            result.index = result.index.shift(self.base, self.freq)
+        if type(self.base) != int:
+           raise Exception("Expect base to be int, got {type}"
+                    .format(type = type(self.base)))
+
+        if self.base > 0 and self.base < self.freq.n:
+            shift_freq = type(self.freq)(1)
+            result.index = result.index.shift(self.base, shift_freq)
                 
         return result
 
