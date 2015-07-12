@@ -423,15 +423,6 @@ def test_series_bin_grouper():
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
-def test_resample_with_timedeltaindex():
-    from pandas import DataFrame
-    from pandas import timedelta_range
-
-    df = DataFrame(np.random.normal(size = (100, 4)))
-    df.index = timedelta_range(start='0s', periods=100, freq='s')
-    resample = df.resample('10s', base = 5)
-    assert_almost_equal(resample.index[0].seconds, 5)
-
 class TestBinGroupers(tm.TestCase):
     _multiprocess_can_split_ = True
 
