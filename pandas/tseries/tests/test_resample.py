@@ -636,7 +636,7 @@ class TestResample(tm.TestCase):
         with_base = ts.resample('10s', base = 5)
         without_base = ts.resample('10s')
 
-        exp_without_base = timedelta_range(start = '5s', end = '25s', freq = '10s')
+        exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '10s')
         exp_with_base = timedelta_range(start = '5s', end = '25s', freq = '10s')
 
         self.assertTrue(with_base.index.equals(exp_with_base))
