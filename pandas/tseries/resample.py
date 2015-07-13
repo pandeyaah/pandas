@@ -228,9 +228,11 @@ class TimeGrouper(Grouper):
         if not len(ax):
             binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
+        
+        first, last = ax.min(), ax.max()
 
-        labels = binner = TimedeltaIndex(start=ax[0],
-                                         end=ax[-1],
+        labels = binner = TimedeltaIndex(start=first,
+                                         end=last,
                                          freq=self.freq,
                                          name=ax.name)
 
@@ -272,6 +274,7 @@ class TimeGrouper(Grouper):
         grouper = self.grouper
         binner = self.binner
         obj = self.obj
+
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
@@ -323,14 +326,11 @@ class TimeGrouper(Grouper):
 
                 result.index = result.index + loffset
 
-        if type(self.base) != int:
-           raise Exception("Expect base to be int, got {type}"
-                    .format(type = type(self.base)))
+        if kind == "timedelta" and len(result.index) > 0:
+            last = result.index[-1]
+            result.index = result.index.shift(self.base)
+            result = result.loc[result.index <= last]
 
-        if self.base > 0 and self.base < self.freq.n:
-            shift_freq = type(self.freq)(1)
-            result.index = result.index.shift(self.base, shift_freq)
-                
         return result
 
     def _resample_periods(self):
