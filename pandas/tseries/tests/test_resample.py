@@ -630,7 +630,6 @@ class TestResample(tm.TestCase):
         self.assertTrue(resampled.index.equals(exp_rng))
 
     def test_resample_base_with_timedeltaindex(self):
-        print "my tests"
         rng = timedelta_range(start = '0s', periods = 25, freq = 's')
         ts = Series(np.random.randn(len(rng)), index = rng)
         
@@ -640,9 +639,6 @@ class TestResample(tm.TestCase):
         exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '2s')
         exp_with_base = timedelta_range(start = '10s', end = '25s', freq = '2s')
 
-        print "exp_with_base: ", exp_with_base
-        print "with_base: ", with_base.index
-    
         self.assertTrue(without_base.index.equals(exp_without_base))
         self.assertTrue(with_base.index.equals(exp_with_base))
 
