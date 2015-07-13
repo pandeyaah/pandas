@@ -630,17 +630,22 @@ class TestResample(tm.TestCase):
         self.assertTrue(resampled.index.equals(exp_rng))
 
     def test_resample_base_with_timedeltaindex(self):
+        print "my tests"
         rng = timedelta_range(start = '0s', periods = 25, freq = 's')
         ts = Series(np.random.randn(len(rng)), index = rng)
         
-        with_base = ts.resample('10s', base = 5)
-        without_base = ts.resample('10s')
+        with_base = ts.resample('2s', base = 5)
+        without_base = ts.resample('2s')
 
-        exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '10s')
-        exp_with_base = timedelta_range(start = '5s', end = '25s', freq = '10s')
+        exp_without_base = timedelta_range(start = '0s', end = '25s', freq = '2s')
+        exp_with_base = timedelta_range(start = '10s', end = '25s', freq = '2s')
 
+        print "exp_with_base: ", exp_with_base
+        print "with_base: ", with_base.index
+    
+        self.assertTrue(without_base.index.equals(exp_without_base))
         self.assertTrue(with_base.index.equals(exp_with_base))
-        self.assertTrue(without_base.index.equal(exp_without_base))
+
 
     def test_resample_daily_anchored(self):
         rng = date_range('1/1/2000 0:00:00', periods=10000, freq='T')
