@@ -21,7 +21,7 @@ from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, nosetester
 
 import pandas as pd
 from pandas.core.common import (is_sequence, array_equivalent, is_list_like, is_number,
@@ -39,6 +39,58 @@ from pandas import (bdate_range, CategoricalIndex, DatetimeIndex, TimedeltaIndex
 from pandas.util.decorators import deprecate
 from pandas import _testing
 from pandas.io.common import urlopen
+
+# setup up test function
+class Tester(nosetester.NoseTester):
+
+    def _show_system_info(self):
+        nose = nosetester.import_nose()
+
+        import pandas
+        print("Pandas version %s" % pandas.__version__)
+        print("Pandas is installed in %s" % pandas.__file__)
+        print("Python version %s" % sys.version.replace('\n', ''))
+        print("nose version %d.%d.%d" % nose.__versioninfo__)
+
+    def test(self, label='fast', verbose=1, extra_argv=None,
+             raise_warnings=None):
+        """
+        Run tests for module using nose.
+
+        Parameters
+        ----------
+        label : {'fast', 'full', '', attribute identifier}, optional
+            Identifies the tests to run. This can be a string to pass to
+            the nosetests executable with the '-A' option, or one of several
+            special values.  Special values are:
+            * 'fast' - the default - which corresponds to the ``nosetests -A``
+              option of 'not slow'.
+            * 'full' - fast (as above) and slow tests as in the
+              'no -A' option to nosetests - this is the same as ''.
+            * None or '' - run all tests.
+            attribute_identifier - string passed directly to nosetests as '-A'.
+        verbose : int, optional
+            Verbosity value for test outputs, in the range 1-10. Default is 1.
+        extra_argv : list, optional
+            List with any extra arguments to pass to nosetests.
+        raise_warnings : str or sequence of warnings, optional
+            This specifies which warnings to configure as 'raise' instead
+            of 'warn' during the test execution.  Valid strings are:
+
+              - "develop" : equals ``(DeprecationWarning, RuntimeWarning)``
+              - "release" : equals ``()``, don't raise on any warnings.
+
+        Returns
+        -------
+        result : object
+            Returns the result of running the tests as a
+            ``nose.result.TextTestResult`` object.
+
+        """
+        return super(Tester, self).test(label=label, verbose=verbose, extra_argv=extra_argv,
+                                        doctests=False, coverage=False,
+                                        raise_warnings=raise_warnings)
+
 
 N = 30
 K = 4

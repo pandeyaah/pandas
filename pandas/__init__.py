@@ -15,8 +15,6 @@ except ImportError as e:  # pragma: no cover
 from datetime import datetime
 import numpy as np
 
-
-# XXX: HACK for NumPy 1.5.1 to suppress warnings
 try:
     np.seterr(all='ignore')
 except Exception:  # pragma: no cover
@@ -55,6 +53,9 @@ from pandas.tools.tile import cut, qcut
 from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
 import pandas.util.testing
+
+from pandas.util.testing import Tester
+test = Tester().test
 
 # use the closest tagged version if possible
 from ._version import get_versions
