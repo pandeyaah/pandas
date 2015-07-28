@@ -228,7 +228,7 @@ class TimeGrouper(Grouper):
         if not len(ax):
             binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
-        
+
         labels = binner = TimedeltaIndex(start=ax[0],
                                          end=ax[-1],
                                          freq=self.freq,
@@ -238,11 +238,7 @@ class TimeGrouper(Grouper):
 
         # Addresses GH #10530
         if self.base > 0:
-            last = labels[-1]
-            labels_shifted = labels.copy()
-            labels_shifted = labels_shifted.shift(self.base)
-            labels_shifted = labels_shifted[labels_shifted <= last]
-            labels = labels_shifted
+            labels = labels.shift(self.base)
 
         bins = ax.searchsorted(end_stamps, side='left')
 
