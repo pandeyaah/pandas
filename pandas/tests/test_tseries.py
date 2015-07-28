@@ -423,7 +423,6 @@ def test_series_bin_grouper():
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     assert_almost_equal(counts, exp_counts)
 
-
 class TestBinGroupers(tm.TestCase):
     _multiprocess_can_split_ = True
 

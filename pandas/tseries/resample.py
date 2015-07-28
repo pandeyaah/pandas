@@ -68,7 +68,6 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
         self.base = base
-
         # always sort time groupers
         kwargs['sort'] = True
 
@@ -229,13 +228,22 @@ class TimeGrouper(Grouper):
         if not len(ax):
             binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
-
+        
         labels = binner = TimedeltaIndex(start=ax[0],
                                          end=ax[-1],
                                          freq=self.freq,
                                          name=ax.name)
 
         end_stamps = labels + 1
+
+        # Addresses GH #10530
+        if self.base > 0:
+            last = labels[-1]
+            labels_shifted = labels.copy()
+            labels_shifted = labels_shifted.shift(self.base)
+            labels_shifted = labels_shifted[labels_shifted <= last]
+            labels = labels_shifted
+
         bins = ax.searchsorted(end_stamps, side='left')
 
         return binner, bins, labels
@@ -273,6 +281,7 @@ class TimeGrouper(Grouper):
         grouper = self.grouper
         binner = self.binner
         obj = self.obj
+
 
         # Determine if we're downsampling
         if axlabels.freq is not None or axlabels.inferred_freq is not None:
