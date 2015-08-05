@@ -30,7 +30,7 @@ test:
     - nose
 
   commands:
-    - nosetests --exe -A "not slow and not network and not disabled" pandas
+    - nosetests --exe -A "not slow and not network and not disabled" pandas -v
 
 about:
   home: http://pandas.pydata.org
