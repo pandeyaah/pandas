@@ -449,6 +449,11 @@ class Categorical(PandasObject):
         if not self._categories is None and len(categories) != len(self._categories):
             raise ValueError("new categories need to have the same number of items than the old "
                              "categories!")
+        if np.any(isnull(categories)):
+            # NaNs in cats deprecated in 0.17, remove in 0.18 or 0.19 GH 10748
+            msg = ('\nSetting NaNs in `categories` is deprecated and '
+                   'will be removed in a future version of pandas.')
+            warn(msg, FutureWarning, stacklevel=9)
         self._categories = categories
 
     def _get_categories(self):
