@@ -1121,20 +1121,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if level is None:
             return notnull(_values_from_object(self)).sum()
-
-        if isinstance(level, compat.string_types):
-            level = self.index._get_level_number(level)
-
-        lev = self.index.levels[level]
-        lab = np.array(self.index.labels[level], subok=False, copy=True)
-
-        mask = lab == -1
-        if mask.any():
-            lab[mask] = cnt = len(lev)
-            lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
-
-        out = np.bincount(lab[notnull(self.values)], minlength=len(lev))
-        return self._constructor(out, index=lev).__finalize__(self)
+        return self._agg_by_level('count', level=level)
 
     def mode(self):
         """Returns the mode(s) of the dataset.
@@ -2076,7 +2063,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> import pandas as pd
         >>> import numpy as np
-        >>> series = pd.Series([20, 21, 12], index=['London', 
+        >>> series = pd.Series([20, 21, 12], index=['London',
         ... 'New York','Helsinki'])
         London      20
         New York    21
@@ -2104,7 +2091,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
 
         Define a custom function that needs additional positional
-        arguments and pass these additional arguments using the 
+        arguments and pass these additional arguments using the
         ``args`` keyword.
 
         >>> def subtract_custom_value(x, custom_value):
@@ -2130,7 +2117,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Helsinki    87
         dtype: int64
 
-        Use a function from the Numpy library. 
+        Use a function from the Numpy library.
 
         >>> series.apply(np.log)
         London      2.995732

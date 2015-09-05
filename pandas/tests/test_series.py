@@ -157,7 +157,7 @@ class CheckNameIntegration(object):
             result = s.dt.to_pytimedelta()
             self.assertIsInstance(result,np.ndarray)
             self.assertTrue(result.dtype == object)
-            
+
             result = s.dt.total_seconds()
             self.assertIsInstance(result,pd.Series)
             self.assertTrue(result.dtype == 'float64')
@@ -4743,8 +4743,9 @@ class TestSeries(tm.TestCase, CheckNameIntegration):
         mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
 
+        # nan's aren't included
         left = ts.count(level=1)
-        right = Series([2, 3, 1], index=[1, 2, nan])
+        right = Series([2, 3], index=[1, 2])
         assert_series_equal(left, right)
 
         ts.iloc[[0, 3, 5]] = nan
