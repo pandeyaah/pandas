@@ -1206,6 +1206,15 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
+    def to_dask(self, npartitions=None, sort=False):
+        """
+        retun a dask.dataframe object
+        """
+        if npartitions is None:
+            npartitions = 4
+        import dask.dataframe as dd
+        return dd.from_pandas(self, npartitions=npartitions, sort=sort)
+
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, quoting=None,
