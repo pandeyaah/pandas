@@ -1206,7 +1206,7 @@ class DataFrame(NDFrame):
 
     to_wide = deprecate('to_wide', to_panel)
 
-    def to_dask(self, npartitions=None, sort=False):
+    def to_parallel(self, npartitions=None, sort=False):
         """
         retun a dask.dataframe object
         """
