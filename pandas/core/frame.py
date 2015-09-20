@@ -182,6 +182,12 @@ class DataFrame(NDFrame):
         Data type to force, otherwise infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
+    policy : string, default None
+        Provide consolidation policy
+          - None : use default policy
+          - block : consolidate into blocks by dtype
+          - column : don't consolidate, but don't split blocks
+          - split : don't consolidate, force splitting of input
 
     Examples
     --------
@@ -211,7 +217,7 @@ class DataFrame(NDFrame):
         return Panel
 
     def __init__(self, data=None, index=None, columns=None, dtype=None,
-                 copy=False):
+                 copy=False, policy=None):
         if data is None:
             data = {}
         if dtype is not None:
@@ -222,9 +228,9 @@ class DataFrame(NDFrame):
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
-                                 dtype=dtype, copy=copy)
+                                 dtype=dtype, copy=copy, policy=policy)
         elif isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns, dtype=dtype)
+            mgr = self._init_dict(data, index, columns, dtype=dtype, policy=policy)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
             # masked recarray
@@ -241,7 +247,7 @@ class DataFrame(NDFrame):
                 else:
                     data = data.copy()
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                                         copy=copy, policy=policy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -252,10 +258,10 @@ class DataFrame(NDFrame):
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
             elif getattr(data, 'name', None):
                 mgr = self._init_dict({data.name: data}, index, columns,
-                                      dtype=dtype)
+                                      dtype=dtype, policy=policy)
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                         copy=copy)
+                                         copy=copy, policy=policy)
         elif isinstance(data, (list, types.GeneratorType)):
             if isinstance(data, types.GeneratorType):
                 data = list(data)
@@ -274,12 +280,12 @@ class DataFrame(NDFrame):
                             index = _default_index(len(data))
 
                     mgr = _arrays_to_mgr(arrays, columns, index, columns,
-                                         dtype=dtype)
+                                         dtype=dtype, policy=policy)
                 else:
                     mgr = self._init_ndarray(data, index, columns, dtype=dtype,
-                                             copy=copy)
+                                             copy=copy, policy=policy)
             else:
-                mgr = self._init_dict({}, index, columns, dtype=dtype)
+                mgr = self._init_dict({}, index, columns, dtype=dtype, policy=policy)
         elif isinstance(data, collections.Iterator):
             raise TypeError("data argument can't be an iterator")
         else:
@@ -299,13 +305,13 @@ class DataFrame(NDFrame):
                 values = np.empty((len(index), len(columns)), dtype=dtype)
                 values.fill(data)
                 mgr = self._init_ndarray(values, index, columns, dtype=dtype,
-                                         copy=False)
+                                         copy=False, policy=policy)
             else:
                 raise PandasError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr, fastpath=True)
 
-    def _init_dict(self, data, index, columns, dtype=None):
+    def _init_dict(self, data, index, columns, dtype=None, policy=None):
         """
         Segregate Series based on type and coerce into matrices.
         Needs to handle a lot of exceptional cases.
@@ -359,10 +365,10 @@ class DataFrame(NDFrame):
             arrays = [data[k] for k in keys]
 
         return _arrays_to_mgr(arrays, data_names, index, columns,
-                              dtype=dtype)
+                              dtype=dtype, policy=policy)
 
     def _init_ndarray(self, values, index, columns, dtype=None,
-                      copy=False):
+                      copy=False, policy=None):
         # input must be a ndarray, list, Series, index
 
         if isinstance(values, Series):
@@ -433,7 +439,7 @@ class DataFrame(NDFrame):
         if dtype is None and is_object_dtype(values):
             values = _possibly_infer_to_datetimelike(values)
 
-        return create_block_manager_from_blocks([values], [columns, index])
+        return create_block_manager_from_blocks([values], [columns, index], policy=policy)
 
     @property
     def axes(self):
@@ -5082,7 +5088,7 @@ DataFrame._add_numeric_operations()
 
 _EMPTY_SERIES = Series([])
 
-def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
+def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, policy=None):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -5099,7 +5105,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    return create_block_manager_from_arrays(arrays, arr_names, axes)
+    return create_block_manager_from_arrays(arrays, arr_names, axes, policy=policy)
 
 
 def extract_index(data):

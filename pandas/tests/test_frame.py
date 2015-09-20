@@ -14461,6 +14461,84 @@ class TestDataFrame(tm.TestCase, CheckIndexing,
         expected = DataFrame(self.frame._series, dtype=np.int32)
         assert_frame_equal(casted, expected)
 
+    def test_policy(self):
+
+        # test consolidation policy
+        # GH 10556, 9216, 5902
+        arr = np.arange(5)
+        d = { 'A' : arr,
+              'B' : np.random.randn(5),
+              'C' : np.random.randn(5),
+              'D' : range(5),
+              'E' : range(5),
+              'F' : 'foo',
+              'G' : 'bar',
+              'H' : Timestamp('20130101'),
+              'I' : Timestamp('20130101') }
+
+        with option_context('mode.policy','block'):
+            df = DataFrame(d)
+            self.assertEqual(len(df._data.blocks), 4)
+
+        # default is block
+        df = DataFrame(d, policy=None)
+        self.assertEqual(len(df._data.blocks), 4)
+
+        df = DataFrame(d, policy='block')
+        self.assertEqual(len(df._data.blocks), 4)
+
+        df = DataFrame(d, policy='column')
+        self.assertEqual(len(df._data.blocks), len(df.columns))
+
+        df = DataFrame(d, policy='split')
+        self.assertEqual(len(df._data.blocks), len(df.columns))
+
+        # assert that these are views
+        arr[0] = -1
+        self.assertEqual(df.loc[0,'A'],-1)
+
+        # splitting blocks
+        arr = np.random.randn(10,5)
+        df = DataFrame(arr, policy='split')
+        self.assertEqual(len(df._data.blocks),5)
+
+        # assert that these are NOT views
+        v = arr[0][0]
+        arr[0][0] = -1
+        self.assertEqual(df.loc[0,0],v)
+
+        # column does not split
+        df = DataFrame(arr, policy='column')
+        self.assertEqual(len(df._data.blocks),1)
+
+        # assert that these are views
+        arr[0][0] = -1
+        self.assertEqual(df.loc[0,0],-1)
+
+    def test_policy_propogation(self):
+
+        # when we do a getitem, the results are cached
+        # assert that we are correctly propogating the
+        # policy to the cached item
+
+        df = DataFrame({ 'A' : np.arange(2), 'B' : np.arange(2,4) }, policy='column')
+        result = df['A']
+        self.assertEqual(result._cacher[1]()._policy,'column')
+
+        with option_context('mode.policy','column'):
+            df = DataFrame({ 'A' : np.arange(2), 'B' : np.arange(2,4) })
+            result = df['A']
+            self.assertEqual(result._cacher[1]()._policy,'column')
+
+        df = DataFrame(np.arange(4).reshape(2,2), columns=list('AB'), policy='split')
+        result = df['A']
+        self.assertEqual(result._cacher[1]()._policy,'split')
+
+        with option_context('mode.policy','split'):
+            df = DataFrame({ 'A' : np.arange(2), 'B' : np.arange(2,4) })
+            result = df['A']
+            self.assertEqual(result._cacher[1]()._policy,'split')
+
     def test_consolidate(self):
         self.frame['E'] = 7.
         consolidated = self.frame.consolidate()

@@ -19,6 +19,7 @@ from pandas.core.common import (_possibly_downcast_to_dtype, isnull,
                                 is_categorical, needs_i8_conversion, is_datetimelike_v_numeric,
                                 is_internal_type)
 from pandas.core.dtypes import DatetimeTZDtype
+from pandas.core.config import get_option
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
@@ -253,6 +254,10 @@ class Block(PandasObject):
             raise ValueError("Only same dim slicing is allowed")
 
         return self.make_block_same_class(new_values, new_mgr_locs)
+
+    @property
+    def base(self):
+        return self.values.base
 
     @property
     def shape(self):
@@ -2399,13 +2404,18 @@ class BlockManager(PandasObject):
     This is *not* a public API class
     """
     __slots__ = ['axes', 'blocks', '_ndim', '_shape', '_known_consolidated',
-                 '_is_consolidated', '_blknos', '_blklocs']
+                 '_is_consolidated', '_blknos', '_blklocs', '_policy']
 
-    def __init__(self, blocks, axes, do_integrity_check=True, fastpath=True):
+    def __init__(self, blocks, axes, do_integrity_check=True, fastpath=True, policy=None):
         self.axes = [_ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)
 
-        for block in blocks:
+        # policy
+        if policy is None:
+            policy = get_option("mode.policy")
+
+        self.blocks, self.policy = _split_blocks(tuple(blocks), policy)
+
+        for block in self.blocks:
             if block.is_sparse:
                 if len(block.mgr_locs) != 1:
                     raise AssertionError("Sparse block refers to multiple items")
@@ -2435,6 +2445,16 @@ class BlockManager(PandasObject):
         else:
             blocks = []
         return self.__class__(blocks, axes)
+
+    @property
+    def policy(self):
+        """ get the state """
+        return self._policy
+
+    @policy.setter
+    def policy(self, value):
+        """ just set the state """
+        self._policy = value
 
     def __nonzero__(self):
         return True
@@ -2817,8 +2837,11 @@ class BlockManager(PandasObject):
         return self._is_consolidated
 
     def _consolidate_check(self):
-        ftypes = [blk.ftype for blk in self.blocks]
-        self._is_consolidated = len(ftypes) == len(set(ftypes))
+        if self.policy in ['split','column']:
+            self._is_consolidated = True
+        else:
+            ftypes = [blk.ftype for blk in self.blocks]
+            self._is_consolidated = len(ftypes) == len(set(ftypes))
         self._known_consolidated = True
 
     @property
@@ -3080,7 +3103,7 @@ class BlockManager(PandasObject):
         if self.is_consolidated():
             return self
 
-        bm = self.__class__(self.blocks, self.axes)
+        bm = self.__class__(self.blocks, self.axes, policy=self.policy)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -3580,10 +3603,11 @@ class SingleBlockManager(BlockManager):
     ndim = 1
     _is_consolidated = True
     _known_consolidated = True
-    __slots__ = ()
+    __slots__ = ['_policy']
 
-    def __init__(self, block, axis, do_integrity_check=False, fastpath=False):
+    def __init__(self, block, axis, do_integrity_check=False, fastpath=False, policy=None):
 
+        self.policy = policy
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
@@ -3771,7 +3795,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
         passed,implied))
 
 
-def create_block_manager_from_blocks(blocks, axes):
+def create_block_manager_from_blocks(blocks, axes, policy):
     try:
         if len(blocks) == 1 and not isinstance(blocks[0], Block):
             # if blocks[0] is of length 0, return empty blocks
@@ -3784,7 +3808,7 @@ def create_block_manager_from_blocks(blocks, axes):
                 blocks = [make_block(values=blocks[0],
                                      placement=slice(0, len(axes[0])))]
 
-        mgr = BlockManager(blocks, axes)
+        mgr = BlockManager(blocks, axes, policy=policy)
         mgr._consolidate_inplace()
         return mgr
 
@@ -3794,18 +3818,18 @@ def create_block_manager_from_blocks(blocks, axes):
         construction_error(tot_items, blocks[0].shape[1:], axes, e)
 
 
-def create_block_manager_from_arrays(arrays, names, axes):
+def create_block_manager_from_arrays(arrays, names, axes, policy):
 
     try:
-        blocks = form_blocks(arrays, names, axes)
-        mgr = BlockManager(blocks, axes)
+        blocks = form_blocks(arrays, names, axes, policy=policy)
+        mgr = BlockManager(blocks, axes, policy=policy)
         mgr._consolidate_inplace()
         return mgr
     except (ValueError) as e:
         construction_error(len(arrays), arrays[0].shape, axes, e)
 
 
-def form_blocks(arrays, names, axes):
+def form_blocks(arrays, names, axes, policy):
     # put "leftover" items in float bucket, where else?
     # generalize?
     float_items = []
@@ -3866,20 +3890,20 @@ def form_blocks(arrays, names, axes):
 
     blocks = []
     if len(float_items):
-        float_blocks = _multi_blockify(float_items)
+        float_blocks = _multi_blockify(float_items, None, policy)
         blocks.extend(float_blocks)
 
     if len(complex_items):
-        complex_blocks = _multi_blockify(complex_items)
+        complex_blocks = _multi_blockify(complex_items, None, policy)
         blocks.extend(complex_blocks)
 
     if len(int_items):
-        int_blocks = _multi_blockify(int_items)
+        int_blocks = _multi_blockify(int_items, None, policy)
         blocks.extend(int_blocks)
 
     if len(datetime_items):
         datetime_blocks = _simple_blockify(
-            datetime_items, _NS_DTYPE)
+            datetime_items, _NS_DTYPE, policy)
         blocks.extend(datetime_blocks)
 
     if len(datetime_tz_items):
@@ -3892,12 +3916,12 @@ def form_blocks(arrays, names, axes):
 
     if len(bool_items):
         bool_blocks = _simple_blockify(
-            bool_items, np.bool_)
+            bool_items, np.bool_, policy)
         blocks.extend(bool_blocks)
 
     if len(object_items) > 0:
         object_blocks = _simple_blockify(
-            object_items, np.object_)
+            object_items, np.object_, policy)
         blocks.extend(object_blocks)
 
     if len(sparse_items) > 0:
@@ -3925,21 +3949,26 @@ def form_blocks(arrays, names, axes):
     return blocks
 
 
-def _simple_blockify(tuples, dtype):
+def _simple_blockify(tuples, dtype, policy):
     """ return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
     """
-    values, placement = _stack_arrays(tuples, dtype)
+    values, placement = _stack_arrays(tuples, dtype, policy)
 
-    # CHECK DTYPE?
-    if dtype is not None and values.dtype != dtype:  # pragma: no cover
-        values = values.astype(dtype)
+    blocks = []
+    for v, p in zip(values, placement):
 
-    block = make_block(values, placement=placement)
-    return [block]
+        # CHECK DTYPE?
+        if dtype is not None and v.dtype != dtype:  # pragma: no cover
+            v = v.astype(dtype)
+
+        block = make_block(v, placement=p)
+        blocks.append(block)
+
+    return blocks
 
 
-def _multi_blockify(tuples, dtype=None):
+def _multi_blockify(tuples, dtype, policy):
     """ return an array of blocks that potentially have different dtypes """
 
     # group by dtype
@@ -3949,10 +3978,11 @@ def _multi_blockify(tuples, dtype=None):
     for dtype, tup_block in grouper:
 
         values, placement = _stack_arrays(
-            list(tup_block), dtype)
+            list(tup_block), dtype, policy)
 
-        block = make_block(values, placement=placement)
-        new_blocks.append(block)
+        for v, p in zip(values, placement):
+            block = make_block(v, placement=p)
+            new_blocks.append(block)
 
     return new_blocks
 
@@ -3973,7 +4003,7 @@ def _sparse_blockify(tuples, dtype=None):
     return new_blocks
 
 
-def _stack_arrays(tuples, dtype):
+def _stack_arrays(tuples, dtype, policy):
 
     # fml
     def _asarray_compat(x):
@@ -3993,11 +4023,16 @@ def _stack_arrays(tuples, dtype):
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)
 
+    # individual blocks
+    if policy in ['split','column']:
+        return [ _block_shape(_asarray_compat(arr), 2) for arr in arrays ], [ (p,) for p in placement ]
+
+    # stack em
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
         stacked[i] = _asarray_compat(arr)
 
-    return stacked, placement
+    return [ stacked ], [ placement ]
 
 
 def _interleaved_dtype(blocks):
@@ -4083,6 +4118,36 @@ def _consolidate(blocks):
 
     return new_blocks
 
+def _split_blocks(blocks, policy):
+    """
+    return split blocks according to the policy
+    # GH 10556, 9216, 5902
+    """
+
+    policies = ['block', 'column', 'split']
+    if policy not in policies:
+        raise ValueError("specified policy must be in [{0}]".format(','.join(policies)))
+
+    new_blocks = []
+    for b in blocks:
+
+        if b.shape[0] == 1:
+            new_blocks.append(b)
+
+        elif policy == 'split':
+
+            # split these & copy to make this a separate base
+            for i, p in enumerate(b.mgr_locs.as_array):
+                new_b = b.make_block(_block_shape(b.iget(i).copy(),ndim=b.ndim),
+                                     placement=[p])
+                new_blocks.append(new_b)
+
+        else:
+            new_blocks.append(b)
+
+
+
+    return new_blocks, policy
 
 def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
     if len(blocks) == 1:

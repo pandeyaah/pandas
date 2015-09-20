@@ -68,7 +68,7 @@ class SparsePanel(Panel):
 
     def __init__(self, frames=None, items=None, major_axis=None, minor_axis=None,
                  default_fill_value=np.nan, default_kind='block',
-                 copy=False):
+                 copy=False, policy=None):
 
         # deprecation #11157
         warnings.warn("SparsePanel is deprecated and will be removed in a future version",

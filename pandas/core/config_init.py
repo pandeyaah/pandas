@@ -333,16 +333,26 @@ with cf.config_prefix('mode'):
                        cb=use_inf_as_null_cb)
 
 
-# user warnings
+#
+# options from the "mode" namespace
+
 chained_assignment = """
 : string
     Raise an exception, warn, or no action if trying to use chained assignment,
     The default is warn
 """
 
+policy = """
+: string
+    Default policy for construction of objects,
+    The default is 'block'
+"""
+
 with cf.config_prefix('mode'):
     cf.register_option('chained_assignment', 'warn', chained_assignment,
                        validator=is_one_of_factory([None, 'warn', 'raise']))
+    cf.register_option('policy', 'block', policy,
+                       validator=is_one_of_factory(['block', 'column', 'split']))
 
 
 # Set up the io.excel specific configuration.

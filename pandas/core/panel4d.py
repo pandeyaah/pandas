@@ -12,8 +12,8 @@ Panel4D = create_nd_panel_factory(
     aliases={'major': 'major_axis', 'minor': 'minor_axis'},
     stat_axis=2,
     ns=dict(__doc__="""
-    Panel4D is a 4-Dimensional named container very much like a Panel, but 
-    having 4 named dimensions. It is intended as a test bed for more 
+    Panel4D is a 4-Dimensional named container very much like a Panel, but
+    having 4 named dimensions. It is intended as a test bed for more
     N-Dimensional named containers.
 
     Parameters
@@ -34,10 +34,10 @@ Panel4D = create_nd_panel_factory(
 
 
 def panel4d_init(self, data=None, labels=None, items=None, major_axis=None,
-                 minor_axis=None, copy=False, dtype=None):
+                 minor_axis=None, copy=False, dtype=None, policy=None):
 
     self._init_data(data=data, labels=labels, items=items,
                     major_axis=major_axis, minor_axis=minor_axis,
-                    copy=copy, dtype=dtype)
+                    copy=copy, dtype=dtype, policy=policy)
 
 Panel4D.__init__ = panel4d_init

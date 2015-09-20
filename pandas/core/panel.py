@@ -131,11 +131,11 @@ class Panel(NDFrame):
     _constructor_sliced = DataFrame
 
     def __init__(self, data=None, items=None, major_axis=None, minor_axis=None,
-                 copy=False, dtype=None):
+                 copy=False, dtype=None, policy=None):
         self._init_data(data=data, items=items, major_axis=major_axis,
-                        minor_axis=minor_axis, copy=copy, dtype=dtype)
+                        minor_axis=minor_axis, copy=copy, dtype=dtype, policy=policy)
 
-    def _init_data(self, data, copy, dtype, **kwargs):
+    def _init_data(self, data, copy, dtype, policy, **kwargs):
         """
         Generate ND initialization; axes are passed
         as required objects to __init__
@@ -158,11 +158,11 @@ class Panel(NDFrame):
                         for x, y in zip(passed_axes, data.axes)]
             mgr = data
         elif isinstance(data, dict):
-            mgr = self._init_dict(data, passed_axes, dtype=dtype)
+            mgr = self._init_dict(data, passed_axes, dtype=dtype, policy=policy)
             copy = False
             dtype = None
         elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
+            mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy, policy=policy)
             copy = False
             dtype = None
         elif lib.isscalar(data) and all(x is not None for x in passed_axes):
@@ -170,14 +170,14 @@ class Panel(NDFrame):
                 dtype, data = _infer_dtype_from_scalar(data)
             values = np.empty([len(x) for x in passed_axes], dtype=dtype)
             values.fill(data)
-            mgr = self._init_matrix(values, passed_axes, dtype=dtype, copy=False)
+            mgr = self._init_matrix(values, passed_axes, dtype=dtype, copy=False, policy=policy)
             copy = False
         else:  # pragma: no cover
             raise PandasError('Panel constructor not properly called!')
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
-    def _init_dict(self, data, axes, dtype=None):
+    def _init_dict(self, data, axes, dtype=None, policy=None):
         haxis = axes.pop(self._info_axis_number)
 
         # prefilter if haxis passed
@@ -217,10 +217,10 @@ class Panel(NDFrame):
                 values = v.values
             arrays.append(values)
 
-        return self._init_arrays(arrays, haxis, [haxis] + raxes)
+        return self._init_arrays(arrays, haxis, [haxis] + raxes, policy=policy)
 
-    def _init_arrays(self, arrays, arr_names, axes):
-        return create_block_manager_from_arrays(arrays, arr_names, axes)
+    def _init_arrays(self, arrays, arr_names, axes, policy):
+        return create_block_manager_from_arrays(arrays, arr_names, axes, policy=policy)
 
     @classmethod
     def from_dict(cls, data, intersect=False, orient='items', dtype=None):
@@ -287,7 +287,7 @@ class Panel(NDFrame):
         else:
             return self._get_item_cache(key)
 
-    def _init_matrix(self, data, axes, dtype=None, copy=False):
+    def _init_matrix(self, data, axes, dtype=None, copy=False, policy=None):
         values = self._prep_ndarray(self, data, copy=copy)
 
         if dtype is not None:
@@ -305,7 +305,7 @@ class Panel(NDFrame):
                 ax = _ensure_index(ax)
             fixed_axes.append(ax)
 
-        return create_block_manager_from_blocks([values], fixed_axes)
+        return create_block_manager_from_blocks([values], fixed_axes, policy=policy)
 
     #----------------------------------------------------------------------
     # Comparison methods
@@ -680,8 +680,8 @@ class Panel(NDFrame):
         elif np.isscalar(other):
             return self._combine_const(other, func)
         else:
-            raise NotImplementedError(str(type(other)) + 
-                ' is not supported in combine operation with ' + 
+            raise NotImplementedError(str(type(other)) +
+                ' is not supported in combine operation with ' +
                 str(type(self)))
 
     def _combine_const(self, other, func):

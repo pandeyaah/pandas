@@ -50,7 +50,7 @@ class SparseDataFrame(DataFrame):
 
     def __init__(self, data=None, index=None, columns=None,
                  default_kind=None, default_fill_value=None,
-                 dtype=None, copy=False):
+                 dtype=None, copy=False, policy=None):
 
         # pick up the defaults from the Sparse structures
         if isinstance(data, SparseDataFrame):
@@ -82,23 +82,25 @@ class SparseDataFrame(DataFrame):
         self._default_fill_value = default_fill_value
 
         if isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns)
+            mgr = self._init_dict(data, index, columns, policy=policy)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, index, columns)
+            mgr = self._init_matrix(data, index, columns, policy=policy)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, SparseDataFrame):
             mgr = self._init_mgr(
-                data._data, dict(index=index, columns=columns), dtype=dtype, copy=copy)
+                data._data, dict(index=index, columns=columns),
+                dtype=dtype, copy=copy, policy=policy)
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         elif isinstance(data, BlockManager):
             mgr = self._init_mgr(
-                data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy)
+                data, axes=dict(index=index, columns=columns),
+                dtype=dtype, copy=copy, policy=policy)
         elif data is None:
             data = DataFrame()
 
@@ -123,11 +125,13 @@ class SparseDataFrame(DataFrame):
 
     @property
     def _constructor(self):
-        def wrapper(data=None, index=None, columns=None, default_fill_value=None, kind=None, fill_value=None, copy=False):
+        def wrapper(data=None, index=None, columns=None, default_fill_value=None, kind=None,
+                    fill_value=None, copy=False, policy=None):
             result = SparseDataFrame(data, index=index, columns=columns,
                                      default_fill_value=fill_value,
                                      default_kind=kind,
-                                     copy=copy)
+                                     copy=copy,
+                                     policy=policy)
 
             # fill if requested
             if fill_value is not None and not isnull(fill_value):
@@ -140,7 +144,7 @@ class SparseDataFrame(DataFrame):
 
         return wrapper
 
-    def _init_dict(self, data, index, columns, dtype=None):
+    def _init_dict(self, data, index, columns, dtype=None, policy=None):
         # pre-filter out columns if we passed it
         if columns is not None:
             columns = _ensure_index(columns)
@@ -181,9 +185,9 @@ class SparseDataFrame(DataFrame):
             if c not in sdict:
                 sdict[c] = sp_maker(nan_vec)
 
-        return to_manager(sdict, columns, index)
+        return to_manager(sdict, columns, index, policy=policy)
 
-    def _init_matrix(self, data, index, columns, dtype=None):
+    def _init_matrix(self, data, index, columns, dtype=None, policy=None):
         data = _prep_ndarray(data, copy=False)
         N, K = data.shape
         if index is None:
@@ -199,12 +203,13 @@ class SparseDataFrame(DataFrame):
                             (len(index), N))
 
         data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
-        return self._init_dict(data, index, columns, dtype)
+        return self._init_dict(data, index, columns, dtype, policy=policy)
 
     def __array_wrap__(self, result):
         return SparseDataFrame(result, index=self.index, columns=self.columns,
                                default_kind=self._default_kind,
-                               default_fill_value=self._default_fill_value).__finalize__(self)
+                               default_fill_value=self._default_fill_value,
+                               policy=self._policy).__finalize__(self)
 
     def __getstate__(self):
         # pickling
@@ -212,7 +217,8 @@ class SparseDataFrame(DataFrame):
                     _subtyp=self._subtyp,
                     _data=self._data,
                     _default_fill_value=self._default_fill_value,
-                    _default_kind=self._default_kind)
+                    _default_kind=self._default_kind,
+                    _policy=self._policy)
 
     def _unpickle_sparse_frame_compat(self, state):
         """ original pickle format """
@@ -737,13 +743,13 @@ class SparseDataFrame(DataFrame):
         """
         return self.apply(lambda x: lmap(func, x))
 
-def to_manager(sdf, columns, index):
+def to_manager(sdf, columns, index, policy=None):
     """ create and return the block manager from a dataframe of series, columns, index """
 
     # from BlockManager perspective
     axes = [_ensure_index(columns), _ensure_index(index)]
 
-    return create_block_manager_from_arrays([sdf[c] for c in columns], columns, axes)
+    return create_block_manager_from_arrays([sdf[c] for c in columns], columns, axes, policy)
 
 
 def stack_sparse_frame(frame):

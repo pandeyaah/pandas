@@ -52,6 +52,8 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
             kwargs['copy'] = False
         if 'dtype' not in kwargs:
             kwargs['dtype'] = None
+        if 'policy' not in kwargs:
+            kwargs['policy'] = None
         self._init_data(*args, **kwargs)
     klass.__init__ = __init__
 

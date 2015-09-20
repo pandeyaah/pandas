@@ -120,7 +120,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False, fastpath=False):
+                 copy=False, fastpath=False, policy=None):
 
         # we are called internally, so short-circuit
         if fastpath:

@@ -106,6 +106,19 @@ class NDFrame(PandasObject):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
+    @property
+    def _policy(self):
+        """ return my policy for internal implementation """
+        return self._data.policy
+
+    @_policy.setter
+    def _policy(self, value):
+        """
+        set my policy for internal implementation
+        should only set the property for state purposes
+        """
+        self._data.policy = value
+
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
 
@@ -119,7 +132,7 @@ class NDFrame(PandasObject):
                                           .format(self.__class__.__name__))
         return dtype
 
-    def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
+    def _init_mgr(self, mgr, axes=None, dtype=None, copy=False, policy=None):
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
@@ -778,7 +791,8 @@ class NDFrame(PandasObject):
     def __getstate__(self):
         meta = dict((k, getattr(self, k, None)) for k in self._metadata)
         return dict(_data=self._data, _typ=self._typ,
-                    _metadata=self._metadata, **meta)
+                    _metadata=self._metadata,
+                    _policy=self._policy, **meta)
 
     def __setstate__(self, state):
 
@@ -1228,8 +1242,15 @@ class NDFrame(PandasObject):
         """
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
-            if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t='referant', force=True)
+            if ref is not None:
+
+                # TODO: fix me!
+                # if we are a single block, then we don't need to check anything here
+                # if we are column and are actually a block, maybe be a bit tricky
+                if ref._policy in ['column','split']:
+                    return True
+                if ref._is_mixed_type:
+                    self._check_setitem_copy(stacklevel=4, t='referant', force=True)
             return True
         elif self.is_copy:
             self._check_setitem_copy(stacklevel=4, t='referant')
@@ -2518,6 +2539,12 @@ class NDFrame(PandasObject):
             dtype=dtype, copy=copy, raise_on_error=raise_on_error, **kwargs)
         return self._constructor(mgr).__finalize__(self)
 
+    def __deepcopy__(self, memo={}):
+        return self.copy(deep=True)
+
+    def __copy__(self):
+        return self.copy()
+
     def copy(self, deep=True):
         """
         Make a copy of this object
@@ -2532,7 +2559,7 @@ class NDFrame(PandasObject):
         copy : type of caller
         """
         data = self._data.copy(deep=deep)
-        return self._constructor(data).__finalize__(self)
+        return self._constructor(data, policy=self._policy).__finalize__(self)
 
     def _convert(self, datetime=False, numeric=False, timedelta=False,
                  coerce=False, copy=True):
