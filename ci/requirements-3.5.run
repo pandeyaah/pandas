@@ -13,11 +13,6 @@ html5lib
 lxml
 matplotlib
 
-# currently causing some warnings
-#sqlalchemy
-#pymysql
-#psycopg2
-
 # not available from conda
 #beautiful-soup
 #bottleneck
