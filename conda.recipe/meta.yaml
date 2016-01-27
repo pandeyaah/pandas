@@ -13,7 +13,7 @@ requirements:
     - python
     - cython
     - numpy x.x
-    - libpython # [py2k and win]
+    #- libpython # [py2k and win]
     - setuptools
     - pytz
     - python-dateutil
