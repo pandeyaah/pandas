@@ -1,13 +1,13 @@
 package:
     name: pandas
-    version: {{ GIT_DESCRIBE_TAG }}
+    version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 build:
-    number: {{ GIT_DESCRIBE_NUMBER|int }}
-    string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}
+    number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+    string: np{{ environ.get('CONDA_NPY') }}py{{ environ.get('CONDA_PY') }}_{{ environ.get('GIT_BUILD_STR', 'unknown') }}
 
 source:
-    git_url: ../
+    path: ../
 
 requirements:
   build:
