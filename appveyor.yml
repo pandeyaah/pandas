@@ -59,7 +59,7 @@ install:
 
   # install our build environment
   - cmd: conda config --set show_channel_urls yes --set always_yes yes --set changeps1 no
-  - cmd: conda update -q conda
+  - cmd: conda install -q conda-build conda=3.19.3
   - cmd: conda config --add channels http://conda.anaconda.org/pandas
   - cmd: conda config --set ssl_verify false
 
@@ -67,7 +67,6 @@ install:
   - conda info -a
 
   # build em using the local source checkout in the correct windows env
-  - conda install conda-build
   - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q --no-test'
 
   # create our env
@@ -80,5 +79,5 @@ install:
 test_script:
   # tests
   - cd \
-  - conda list pandas
+  - conda list
   - nosetests --exe -A "not slow and not network and not disabled" pandas
