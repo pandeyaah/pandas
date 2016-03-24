@@ -170,7 +170,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
                  mapping={True: 'coerce', False: 'raise'})
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True, coerce=None,
-                unit=None, infer_datetime_format=False):
+                unit=None, infer_datetime_format=False, origin='epoch'):
     """
     Convert argument to datetime.
 
@@ -228,6 +228,17 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
+    origin : scalar convertible to Timestamp / string ('julian', 'epoch'),
+        default 'epoch'.
+        Define relative offset for the returned dates.
+
+        - If 'epoch', offset is set to 1-1-1970.
+        - If 'julian', unit must be 'D', and offset is set to beginning of
+          Julian Calendar.
+        - If Timestamp convertible, offset is set to Timestamp identified by
+          origin.
+
+        .. versionadded: 0.18.1
 
     Returns
     -------
@@ -260,6 +271,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     If a date that does not meet timestamp limitations, passing errors='coerce'
     will force to NaT. Furthermore this will force non-dates to NaT as well.
 
+    >>> pd.to_datetime(range(100), unit='D', origin=Timestamp('1960-01-01'))
+    0    1960-01-01
+    1    1960-01-02
+    ...
+    98   1960-04-08
+    99   1960-04-09
+
+
     >>> pd.to_datetime('13000101', format='%Y%m%d')
     datetime.datetime(1300, 1, 1, 0, 0)
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
@@ -285,10 +304,25 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1 loop, best of 3: 471 ms per loop
 
     """
-    return _to_datetime(arg, errors=errors, dayfirst=dayfirst,
-                        yearfirst=yearfirst,
-                        utc=utc, box=box, format=format, exact=exact,
-                        unit=unit, infer_datetime_format=infer_datetime_format)
+    # variable to set offset as per origin parameter
+    offset = None
+
+    if origin == 'julian':
+        if unit != 'D':
+            raise ValueError("unit must be 'D' for origin='julian'")
+        arg = arg - tslib.Timestamp(0).to_julian_date()
+    elif origin != 'epoch':
+        offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+
+    result = _to_datetime(arg, errors=errors, dayfirst=dayfirst,
+                          yearfirst=yearfirst, utc=utc, box=box, format=format,
+                          exact=exact, unit=unit,
+                          infer_datetime_format=infer_datetime_format)
+
+    if offset is not None:
+        result = result + offset
+
+    return result
 
 
 def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
