@@ -1006,7 +1006,6 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
-        indices = com._ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                                 allow_fill=allow_fill,
                                                 fill_value=fill_value,
@@ -1744,7 +1743,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(com._ensure_platform_int(indexer))
+                indexer = labels.take(indexer)
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._values
 

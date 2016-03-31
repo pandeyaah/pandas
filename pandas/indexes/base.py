@@ -1351,7 +1351,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
     @Appender(_index_shared_docs['take'])
     def take(self, indices, axis=0, allow_fill=True, fill_value=None):
-        indices = com._ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
@@ -1361,6 +1360,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if allow_fill and fill_value is not None:
                 msg = 'Unable to fill values because {0} cannot contain NA'
                 raise ValueError(msg.format(self.__class__.__name__))
+            indices = com._ensure_platform_int(indices)
             taken = self.values.take(indices)
         return self._shallow_copy(taken)
 
