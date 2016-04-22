@@ -1,6 +1,6 @@
 import numpy as np
 cimport numpy as np
-from numpy cimport uint8_t, uint16_t, int8_t
+from numpy cimport uint8_t, uint16_t, int8_t, int64_t
 import sas_constants as const
 
 # rle_decompress decompresses data using a Run Length Encoding
@@ -187,9 +187,9 @@ cdef class Parser(object):
 
     cdef:
         int column_count
-        long[:] lengths
-        long[:] offsets
-        long[:] column_types
+        int64_t[:] lengths
+        int64_t[:] offsets
+        int64_t[:] column_types
         uint8_t[:, :] byte_chunk
         object[:, :] string_chunk
         char *cached_page
@@ -222,7 +222,7 @@ cdef class Parser(object):
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
-        self.column_types = np.empty(self.column_count, dtype=long)
+        self.column_types = np.empty(self.column_count, dtype='int64')
 
         column_types = parser.column_types
 
@@ -339,11 +339,11 @@ cdef class Parser(object):
     cdef void process_byte_array_with_data(self, int offset, int length):
 
         cdef:
-             long s, j, k, m, jb, js, lngt, start
+             int s, j, k, m, jb, js, lngt, start
              np.ndarray[uint8_t, ndim=1] source
-             long[:] column_types
-             long[:] lengths
-             long[:] offsets
+             int64_t[:] column_types
+             int64_t[:] lengths
+             int64_t[:] offsets
              uint8_t[:, :] byte_chunk
              object[:, :] string_chunk
 
