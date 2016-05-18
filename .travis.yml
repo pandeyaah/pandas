@@ -12,6 +12,9 @@ env:
   # pandas-docs-bot GH
   - secure: "PCzUFR8CHmw9lH84p4ygnojdF7Z8U5h7YfY0RyT+5K/aiQ1ZTU3ZkDTPI0/rR5FVMxsEEKEQKMcc5fvqW0PeD7Q2wRmluloKgT9w4EVEJ1ppKf7lITPcvZR2QgVOvjv4AfDtibLHFNiaSjzoqyJVjM4igjOu8WTlF3JfZcmOQjQ="
 
+  # travis-dedup
+  - secure: "HJxcTWtGhA3dnXn1JqSTq/TBXM6g+sQ5Odck5uYFlwldiQag1DHMFMXJB78qZTQ7txjXHCBMNbwlp5HtnpffLqSWuIb2LNrM0U1KSRdaPkdyhj9xyymmKyICCTkGApNiwv6FQoK0N7NsVKZyxmZPMSzhWtMLOlgCZ78Je/Ou4Uk="
+
 git:
     # for cloning
     depth: 300
@@ -148,6 +151,7 @@ before_install:
 # git info & get tags
   - git --version
   - git tag
+  - gem install travis_dedup && travis-dedup pydata/pandas $TRAVIS_DEDUPE --branches
   - ci/before_install_travis.sh
   - export DISPLAY=:99.0
 
