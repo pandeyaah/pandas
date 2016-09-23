@@ -41,7 +41,7 @@ if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE
 
     conda config --set always_yes yes --set changeps1 no || exit 1
     echo "update conda"
-    conda update -q conda || exit 1
+    conda install -q conda=4.1.12 || exit 1
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
@@ -72,7 +72,7 @@ else
     echo "update conda"
     conda config --set ssl_verify false || exit 1
     conda config --set always_yes true --set changeps1 false || exit 1
-    conda update -q conda
+    conda install -q conda=4.1.12 || exit 1
 
     # add the pandas channel *before* defaults to have defaults take priority
     echo "add channels"
