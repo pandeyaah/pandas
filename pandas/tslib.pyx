@@ -689,7 +689,7 @@ class Timestamp(_Timestamp):
             """ validate integers """
             if not isinstance(v, int):
                 raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
+                               "{v} for {k}".format(v=type(v), k=k))
             return v
 
         for k, v in kwds.items():
