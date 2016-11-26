@@ -23,10 +23,14 @@ class Algorithms(object):
         self.arrpos = np.arange(1000000)
         self.arrneg = np.arange(-1000000, 0)
         self.arrmixed = np.array([1, -1]).repeat(500000)
+        self.strings = tm.makeStringIndex(100000)
 
         # match
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
+
+    def time_factorize_string(self):
+        self.strings.factorize()
 
     def time_factorize_int(self):
         self.int.factorize()
