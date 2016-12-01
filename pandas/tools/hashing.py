@@ -12,7 +12,19 @@ from pandas.types.common import is_categorical_dtype
 _default_hash_key = '0123456789123456'
 
 
-def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
+def reducer(arr):
+    """
+    return a scalar via our reduction function
+
+    an empty array returns np.nan
+    """
+    if len(arr):
+        return np.bitwise_xor.reduce(arr)
+    return np.nan
+
+
+def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
+                       reduce=False):
     """
     Return a data hash of the Index/Series/DataFrame
 
@@ -25,6 +37,8 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
     encoding : string, default 'utf8'
         encoding for data & key when strings
     hash_key : string key to encode, default to _default_hash_key
+    reduce : boolean, default False
+        produce a single hash result
 
     Returns
     -------
@@ -65,10 +79,14 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None):
         h = Series(h, index=obj.index, dtype='uint64')
     else:
         raise TypeError("Unexpected type for hashing %s" % type(obj))
+
+    if reduce:
+        h = reducer(h.values)
+
     return h
 
 
-def hash_array(vals, encoding='utf8', hash_key=None):
+def hash_array(vals, encoding='utf8', hash_key=None, reduce=False):
     """
     Given a 1d array, return an array of deterministic integers.
 
@@ -80,6 +98,8 @@ def hash_array(vals, encoding='utf8', hash_key=None):
     encoding : string, default 'utf8'
         encoding for data & key when strings
     hash_key : string key to encode, default to _default_hash_key
+    reduce : boolean, default False
+        produce a single hash result
 
     Returns
     -------
@@ -134,4 +154,8 @@ def hash_array(vals, encoding='utf8', hash_key=None):
     vals ^= vals >> 27
     vals *= np.uint64(0x94d049bb133111eb)
     vals ^= vals >> 31
+
+    if reduce:
+        vals = reducer(vals)
+
     return vals

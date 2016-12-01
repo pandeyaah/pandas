@@ -3,6 +3,7 @@ import pandas as pd
 
 from pandas import DataFrame, Series, Index
 from pandas.tools.hashing import hash_array, hash_pandas_object
+from pandas.types.common import is_scalar
 import pandas.util.testing as tm
 
 
@@ -31,6 +32,20 @@ class TestHashing(tm.TestCase):
                           index=['foo', 'bar', 'baz'])
         tm.assert_series_equal(result, expected)
 
+    def test_reduce_consistency(self):
+        c = Series(pd.Categorical([1, 2], ordered=True))
+
+        result = hash_pandas_object(c, reduce=True)
+        self.assertEqual(result, 6505546918052763540)
+
+        c = Series(pd.Categorical([2, 1], ordered=True))
+        result = hash_pandas_object(c, reduce=True)
+        self.assertEqual(result, 6135121269729399882)
+
+        c = Series(pd.Categorical([1., 2.], ordered=True))
+        result = hash_pandas_object(c, reduce=True)
+        self.assertEqual(result, 6505546918052763540)
+
     def test_hash_array(self):
         for name, s in self.df.iteritems():
             a = s.values
@@ -45,6 +60,11 @@ class TestHashing(tm.TestCase):
         a = hash_pandas_object(obj, **kwargs)
         b = hash_pandas_object(obj, **kwargs)
         tm.assert_series_equal(a, b)
+
+        # test reducing
+        kwargs['reduce'] = True
+        result = hash_pandas_object(obj, **kwargs)
+        self.assertTrue(is_scalar(result))
 
     def check_not_equal_with_index(self, obj):
 
