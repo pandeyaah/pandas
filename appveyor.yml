@@ -104,4 +104,4 @@ test_script:
   - cd \
   - cmd: activate pandas
   - cmd: conda list
-  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas
+  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas -v
