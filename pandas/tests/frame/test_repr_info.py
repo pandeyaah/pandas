@@ -406,6 +406,15 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # high upper bound
         self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
 
+    def test_info_overflow(self):
+
+        # GH
+        # int32 summations can overflow
+        df = pd.DataFrame(np.arange(np.iinfo(np.int32).max // 8) + 2)
+        print("memory usage: {} {}".format(df[0].values.dtype, df[0].values.nbytes))
+        result = df.memory_usage(deep=True, index=False).sum()
+        self.assertTrue(result > np.iinfo(np.int32).max)
+
     def test_info_categorical(self):
         # GH14298
         idx = pd.CategoricalIndex(['a', 'b'])
