@@ -1287,6 +1287,7 @@ _join_functions = {
 
 
 def _factorize_keys(lk, rk, sort=True):
+
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values

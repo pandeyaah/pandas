@@ -99,8 +99,7 @@ cdef class Int64Factorizer:
     def factorize(self, int64_t[:] values, sort=False,
                   na_sentinel=-1, check_null=True):
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel,
-                                       check_null)
+                                       self.count, na_sentinel, check_null)
 
         # sort on
         if sort:
@@ -286,25 +285,27 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     """
     cdef:
         int ret = 0
-        Py_ssize_t i, n = len(labels)
+        Py_ssize_t i, count = 0, n = len(labels)
         kh_int64_t * table = kh_init_int64()
-        Int64Vector idx = Int64Vector()
+        Int64Vector idx
         ndarray[int64_t, ndim=1] arr
-        Int64VectorData *ud = idx.data
+        int64_t[:] uindexer
 
     kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
+    uindexer = np.empty(n, dtype=np.int64)
 
     with nogil:
         for i in range(n):
             kh_put_int64(table, labels[i], &ret)
             if ret != 0:
-                if needs_resize(ud):
-                    with gil:
-                        idx.resize()
-                append_data_int64(ud, i)
+                uindexer[count] = i
+                count += 1
 
     kh_destroy_int64(table)
 
+    idx = Int64Vector(count)
+    for i in range(count):
+        idx.append(uindexer[i])
     arr = idx.to_array()
     arr = arr[labels[arr].argsort()]
 
