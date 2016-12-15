@@ -38,7 +38,7 @@ def read_pickle(path):
     unpickled : type of object stored in file
     """
 
-    def try_read(path, encoding=None):
+    def try_read(b, encoding=None):
         # try with cPickle
         # try with current pickle, if we have a Type Error then
         # try with the compat pickle to handle subclass changes
@@ -47,25 +47,31 @@ def read_pickle(path):
 
         # cpickle
         # GH 6899
+
         try:
-            with open(path, 'rb') as fh:
-                return pkl.load(fh)
+            b.seek(0)
+            return pkl.load(b)
         except Exception:
+
             # reg/patched pickle
             try:
-                with open(path, 'rb') as fh:
-                    return pc.load(fh, encoding=encoding, compat=False)
+                b.seek(0)
+                return pc.load(b, encoding=encoding, compat=False)
 
             # compat pickle
             except:
-                with open(path, 'rb') as fh:
-                    return pc.load(fh, encoding=encoding, compat=True)
+
+                b.seek(0)
+                return pc.load(b, encoding=encoding, compat=True)
+
+    with open(path, 'rb') as fh:
+        b = BytesIO(fh.read())
 
     try:
-        return try_read(path)
+        return try_read(b)
     except:
         if PY3:
-            return try_read(path, encoding='latin1')
+            return try_read(b, encoding='latin1')
         raise
 
 # compat with sparse pickle / unpickle

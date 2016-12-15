@@ -22,6 +22,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``.replace()`` (:issue:`12745`)
+- Improved pickle performance when reading for compatiblity (e.g. py3 reading py2 or from an older pandas version), (:issue:``)
 
 .. _whatsnew_0192.enhancements.other:
 
