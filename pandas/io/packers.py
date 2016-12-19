@@ -70,7 +70,7 @@ from pandas.util._move import (
     move_into_mutable_buffer as _move_into_mutable_buffer,
 )
 
-# check whcih compression libs we have installed
+# check which compression libs we have installed
 try:
     import zlib
 
@@ -591,19 +591,21 @@ def decode(obj):
                           name=obj[u'name'])
 
     elif typ == u'series':
+        name = obj[u'name']
+        index = obj[u'index']
+        klass = globals()[obj[u'klass']]
+
         dtype = dtype_for(obj[u'dtype'])
         pd_dtype = pandas_dtype(dtype)
-        np_dtype = pandas_dtype(dtype).base
-
-        index = obj[u'index']
-        result = globals()[obj[u'klass']](unconvert(obj[u'data'], dtype,
-                                                    obj[u'compress']),
-                                          index=index,
-                                          dtype=np_dtype,
-                                          name=obj[u'name'])
         tz = getattr(pd_dtype, 'tz', None)
+
+        arr = unconvert(obj[u'data'], dtype, obj[u'compress'])
+
         if tz:
+            result = klass(arr, index=index, dtype=pd_dtype.base, name=name)
             result = result.dt.tz_localize('UTC').dt.tz_convert(tz)
+        else:
+            result = klass(arr, index=index, dtype=pd_dtype, name=name)
         return result
 
     elif typ == u'block_manager':
