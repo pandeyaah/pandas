@@ -825,7 +825,7 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                             # localize
                             value = to_datetime(
                                 value,
-                                errors=errors).tz_localize(dtype.tz)
+                                errors=errors).tz_localize('UTC').tz_convert(dtype.tz)
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError, TypeError):

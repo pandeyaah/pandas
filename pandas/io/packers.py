@@ -597,15 +597,9 @@ def decode(obj):
 
         dtype = dtype_for(obj[u'dtype'])
         pd_dtype = pandas_dtype(dtype)
-        tz = getattr(pd_dtype, 'tz', None)
 
-        arr = unconvert(obj[u'data'], dtype, obj[u'compress'])
-
-        if tz:
-            result = klass(arr, index=index, dtype=pd_dtype.base, name=name)
-            result = result.dt.tz_localize('UTC').dt.tz_convert(tz)
-        else:
-            result = klass(arr, index=index, dtype=pd_dtype, name=name)
+        result = klass(unconvert(obj[u'data'], dtype, obj[u'compress']),
+                       index=index, name=name, dtype=pd_dtype)
         return result
 
     elif typ == u'block_manager':
